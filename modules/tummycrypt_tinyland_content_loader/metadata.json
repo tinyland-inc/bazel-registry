@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/tinyland-inc/tinyland.dev/tree/main/packages/tinyland-content-loader",
+  "maintainers": [
+    {
+      "name": "tinyland",
+      "email": "tinyland@tinyland.dev"
+    }
+  ],
+  "versions": [
+    "0.1.0"
+  ],
+  "yanked_versions": {}
+}
