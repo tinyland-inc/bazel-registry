@@ -1,5 +1,5 @@
 {
-  "url": "https://github.com/tinyland-inc/tinyland.dev/archive/refs/tags/v0.1.0.tar.gz",
-  "strip_prefix": "tinyland.dev-0.1.0/packages/tinyvectors",
-  "integrity": ""
+  "url": "https://github.com/tinyland-inc/tinyvectors/archive/refs/tags/v0.1.0.tar.gz",
+  "strip_prefix": "tinyvectors-0.1.0",
+  "integrity": "sha256-WdNbbIqrHjQIfUuo99g2gTWwOycQpJxn5EejwOolibg="
 }

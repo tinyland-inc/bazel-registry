@@ -31,4 +31,6 @@ modules/
 
 ## Source
 
-Generated from [tinyland.dev](https://github.com/tinyland-inc/tinyland.dev) monorepo `bcr/` directory.
+Originally generated from the [tinyland.dev](https://github.com/tinyland-inc/tinyland.dev) monorepo `bcr/` directory.
+
+As packages are extracted into standalone repos, individual module entries may be manually recanonicalized to point at the standalone package source instead of the old monorepo archive. The `tummycrypt_tinyvectors` entry is one of those cases.
