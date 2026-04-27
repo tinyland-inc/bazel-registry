@@ -23,4 +23,4 @@ jobs:
       - run: npm run validate
       - run: npm run smoke:resolve
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN || github.token }}
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}

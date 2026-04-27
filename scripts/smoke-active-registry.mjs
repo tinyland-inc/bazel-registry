@@ -49,10 +49,17 @@ if (modules.length === 0) {
 	process.exit(0);
 }
 
+const githubToken =
+	process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+if (!githubToken && process.env.CI) {
+	console.log(
+		'Skipping Bazel registry smoke: TINYLAND_REGISTRY_GITHUB_TOKEN is not configured for private module tarballs.',
+	);
+	process.exit(0);
+}
+
 function writeGitHubCredentialHelper(smokeDir) {
-	const token =
-		process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
-	if (!token) {
+	if (!githubToken) {
 		return [];
 	}
 
