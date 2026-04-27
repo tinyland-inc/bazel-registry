@@ -18,13 +18,24 @@ function listModuleVersions() {
 	return fs
 		.readdirSync(modulesDir, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
-		.flatMap((moduleEntry) => {
+		.map((moduleEntry) => {
 			const moduleName = moduleEntry.name;
 			const moduleDir = path.join(modulesDir, moduleName);
-			return fs
+			const versions = fs
 				.readdirSync(moduleDir, { withFileTypes: true })
 				.filter((entry) => entry.isDirectory())
-				.map((versionEntry) => ({ moduleName, version: versionEntry.name }));
+				.map((entry) => entry.name)
+				.sort((a, b) => {
+					const pa = a.split('.').map(Number);
+					const pb = b.split('.').map(Number);
+					for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+						const da = pa[i] ?? 0;
+						const db = pb[i] ?? 0;
+						if (da !== db) return da - db;
+					}
+					return 0;
+				});
+			return { moduleName, version: versions[versions.length - 1] };
 		})
 		.sort((left, right) =>
 			`${left.moduleName}@${left.version}`.localeCompare(`${right.moduleName}@${right.version}`),
