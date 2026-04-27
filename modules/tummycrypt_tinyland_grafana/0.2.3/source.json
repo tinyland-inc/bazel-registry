@@ -1,5 +1,5 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-grafana/archive/refs/tags/v0.2.3.tar.gz",
-  "strip_prefix": "tinyland-inc-tinyland-grafana-6abe776",
-  "integrity": "sha256-Vj4R83KffptF22ibmT80s+h/7UoCI43FCAnlvZp6uMM="
+  "strip_prefix": "tinyland-grafana-0.2.3",
+  "integrity": "sha256-R8c3z8ExHAmrpFq7ioFUilgz0bP6nsecVjhvkVoVQQQ="
 }
