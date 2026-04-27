@@ -4,6 +4,7 @@
   "type": "module",
   "packageManager": "npm@10.9.0",
   "scripts": {
-    "validate": "node scripts/validate-registry.mjs"
+    "validate": "node scripts/validate-registry.mjs",
+    "smoke:resolve": "node scripts/smoke-active-registry.mjs"
   }
 }

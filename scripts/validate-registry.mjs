@@ -61,14 +61,49 @@ for (const sourceJsonPath of sourceJsonFiles) {
 		continue;
 	}
 
+	const versionDir = path.dirname(sourceJsonPath);
+	const version = path.basename(versionDir);
+	const moduleDir = path.dirname(versionDir);
+	const moduleName = path.basename(moduleDir);
+	const metadataPath = path.join(moduleDir, 'metadata.json');
+	const moduleBazelPath = path.join(versionDir, 'MODULE.bazel');
+	const metadata = fs.existsSync(metadataPath) ? readJson(metadataPath) : undefined;
+	const moduleBazel = fs.existsSync(moduleBazelPath)
+		? fs.readFileSync(moduleBazelPath, 'utf8')
+		: undefined;
+
 	if (!source.integrity) {
 		fail(`${relativePath} has blank integrity`);
+	}
+	if (!source.integrity?.startsWith('sha256-')) {
+		fail(`${relativePath} integrity must use sha256 SRI format`);
 	}
 	if (source.url?.includes('tinyland.dev/archive/refs/tags')) {
 		fail(`${relativePath} still points at a tinyland.dev tarball`);
 	}
 	if (source.strip_prefix?.includes('tinyland.dev-')) {
 		fail(`${relativePath} strip_prefix still references tinyland.dev`);
+	}
+	if (!metadata) {
+		fail(`${relativePath} is missing sibling metadata.json`);
+		continue;
+	}
+	if (!metadata.homepage || metadata.homepage.includes('tinyland.dev/tree/main/packages')) {
+		fail(`${relativePath} metadata homepage does not point at standalone authority`);
+	}
+	if (!metadata.versions?.includes(version)) {
+		fail(`${relativePath} metadata versions does not include ${version}`);
+	}
+	if (!moduleBazel) {
+		fail(`${relativePath} is missing sibling MODULE.bazel`);
+		continue;
+	}
+	if (
+		!new RegExp(`module\\([\\s\\S]*?name = "${moduleName}"[\\s\\S]*?version = "${version}"`).test(
+			moduleBazel,
+		)
+	) {
+		fail(`${relativePath} MODULE.bazel does not declare ${moduleName}@${version}`);
 	}
 }
 

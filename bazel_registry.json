@@ -1,5 +1,5 @@
 {
   "mirrors": [],
-  "module_base_path": "archive/modules-legacy-2026-04-20",
-  "status": "archived"
+  "module_base_path": "modules",
+  "status": "active"
 }

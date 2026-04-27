@@ -1,22 +1,31 @@
 # tinyland Bazel Registry
 
-Archived Bazel Central Registry snapshot for historical `@tummycrypt/*`
-package experiments.
+Active Bazel module registry for standalone `@tummycrypt/*` package
+authorities.
 
 ## Status
 
-This repository is not an active Bzlmod release authority today.
+This repository is now an active but deliberately narrow Bzlmod release
+authority.
 
-The checked-in module entries are a legacy `0.1.0` snapshot generated from
-the `tinyland.dev` monorepo. They still point at non-existent monorepo tag
-archives and have blank source integrity fields, so they are preserved for
-forensic comparison only.
+The active `modules/` tree only contains standalone package releases that have
+truthful source archives and non-empty source integrity. The old `0.1.0`
+monorepo-generated snapshot remains under `archive/modules-legacy-2026-04-20`
+for forensic comparison only.
 
-Do not consume this registry from `.bazelrc` until entries are regenerated from
-the active standalone package authorities and the validator reports an active,
-integrity-complete registry.
+Do not re-add modules by copying the archived snapshot forward. New entries
+must be generated from the standalone repository that owns the package release.
 
-## Future Active Registry Contract
+Current active modules:
+
+- `tummycrypt_tinyvectors@0.2.3`
+
+Known blocker: packages whose standalone `MODULE.bazel` files create an
+Aspect npm extension repo named `npm` cannot yet be composed in one external
+Bzlmod graph. Keep those modules out of the active registry until their source
+repos stop colliding on the generated `@npm` repository name.
+
+## Active Registry Contract
 
 An active registry entry must:
 
@@ -31,6 +40,12 @@ An active registry entry must:
 
 ```
 bazel_registry.json    # Registry manifest
+modules/
+  tummycrypt_*/        # Active standalone module entries
+    metadata.json
+    <version>/
+      MODULE.bazel
+      source.json
 archive/
   modules-legacy-2026-04-20/
     tummycrypt_*/      # Historical module entries
@@ -49,5 +64,5 @@ npm run validate
 ```
 
 The validator allows the current archived snapshot, but it fails if the registry
-is marked active while entries still have blank integrity or monorepo archive
-source references.
+is marked active while entries have blank integrity, monorepo archive source
+references, or module/version metadata drift.
