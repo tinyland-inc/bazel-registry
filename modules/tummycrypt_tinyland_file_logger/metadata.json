@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/tinyland-inc/tinyland-file-logger",
+  "maintainers": [
+    {
+      "name": "tinyland",
+      "email": "tinyland@tinyland.dev"
+    }
+  ],
+  "versions": [
+    "0.2.2"
+  ],
+  "yanked_versions": {}
+}
