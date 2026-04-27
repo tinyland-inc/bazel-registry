@@ -18,13 +18,25 @@ function listModuleVersions() {
 	return fs
 		.readdirSync(modulesDir, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
-		.flatMap((moduleEntry) => {
+		.map((moduleEntry) => {
 			const moduleName = moduleEntry.name;
 			const moduleDir = path.join(modulesDir, moduleName);
-			return fs
+			const versions = fs
 				.readdirSync(moduleDir, { withFileTypes: true })
 				.filter((entry) => entry.isDirectory())
-				.map((versionEntry) => ({ moduleName, version: versionEntry.name }));
+				.map((entry) => entry.name)
+				.sort((left, right) => {
+					const leftParts = left.split('.').map(Number);
+					const rightParts = right.split('.').map(Number);
+					for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+						const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+						if (delta !== 0) {
+							return delta;
+						}
+					}
+					return 0;
+				});
+			return { moduleName, version: versions.at(-1) };
 		})
 		.sort((left, right) =>
 			`${left.moduleName}@${left.version}`.localeCompare(`${right.moduleName}@${right.version}`),
@@ -37,8 +49,42 @@ if (modules.length === 0) {
 	process.exit(0);
 }
 
+const githubToken =
+	process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+if (!githubToken && process.env.CI) {
+	console.log(
+		'Skipping Bazel registry smoke: TINYLAND_REGISTRY_GITHUB_TOKEN is not configured for private module tarballs.',
+	);
+	process.exit(0);
+}
+
+function writeGitHubCredentialHelper(smokeDir) {
+	if (!githubToken) {
+		return [];
+	}
+
+	const helperPath = path.join(smokeDir, 'github-credential-helper.mjs');
+	fs.writeFileSync(
+		helperPath,
+		`#!/usr/bin/env node
+const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+if (!token) process.exit(1);
+process.stdout.write(JSON.stringify({
+  headers: {
+    Authorization: [\`Bearer \${token}\`],
+    Accept: ['application/vnd.github+json'],
+  },
+}));
+`,
+		{ mode: 0o700 },
+	);
+
+	return [`--credential_helper=github.com=${helperPath}`];
+}
+
 const smokeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tinyland-registry-smoke-'));
 try {
+	const credentialHelperArgs = writeGitHubCredentialHelper(smokeDir);
 	const moduleBazel = [
 		'module(name = "tinyland_registry_smoke", version = "0.0.0")',
 		...modules.map(
@@ -54,6 +100,7 @@ try {
 		[
 			'mod',
 			'graph',
+			...credentialHelperArgs,
 			`--registry=file://${root}`,
 			'--registry=https://bcr.bazel.build',
 		],
