@@ -1,34 +1,53 @@
 # tinyland Bazel Registry
 
-Private Bazel Central Registry for `@tummycrypt/*` packages.
+Archived Bazel Central Registry snapshot for historical `@tummycrypt/*`
+package experiments.
 
-## Usage
+## Status
 
-Add to your `.bazelrc`:
+This repository is not an active Bzlmod release authority today.
 
-```
-common --registry=https://raw.githubusercontent.com/tinyland-inc/bazel-registry/main/
-common --registry=https://bcr.bazel.build/
-```
+The checked-in module entries are a legacy `0.1.0` snapshot generated from
+the `tinyland.dev` monorepo. They still point at non-existent monorepo tag
+archives and have blank source integrity fields, so they are preserved for
+forensic comparison only.
 
-Then in your `MODULE.bazel`:
+Do not consume this registry from `.bazelrc` until entries are regenerated from
+the active standalone package authorities and the validator reports an active,
+integrity-complete registry.
 
-```starlark
-bazel_dep(name = "tummycrypt_tinyland_auth", version = "0.1.0")
-```
+## Future Active Registry Contract
+
+An active registry entry must:
+
+- point at the standalone module repository or release artifact that owns the
+  package;
+- include a non-empty `source.json` integrity value;
+- avoid `tinyland.dev` monorepo archive URLs and strip prefixes;
+- match the module version to the package/build authority surface for that
+  module.
 
 ## Structure
 
 ```
 bazel_registry.json    # Registry manifest
-modules/
-  tummycrypt_*/        # One directory per module
-    metadata.json      # Homepage, maintainers, versions
-    0.1.0/
-      MODULE.bazel     # Module definition + deps
-      source.json      # Archive URL + integrity hash
+archive/
+  modules-legacy-2026-04-20/
+    tummycrypt_*/      # Historical module entries
+      metadata.json
+      0.1.0/
+        MODULE.bazel
+        source.json
 ```
 
-## Source
+## Validation
 
-Generated from [tinyland.dev](https://github.com/tinyland-inc/tinyland.dev) monorepo `bcr/` directory.
+Run:
+
+```bash
+npm run validate
+```
+
+The validator allows the current archived snapshot, but it fails if the registry
+is marked active while entries still have blank integrity or monorepo archive
+source references.
