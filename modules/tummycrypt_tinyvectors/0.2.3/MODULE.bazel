@@ -29,9 +29,9 @@ use_repo(pnpm, "pnpm")
 
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
 npm.npm_translate_lock(
-    name = "npm",
+    name = "tummycrypt_tinyvectors_npm",
     pnpm_lock = "//:pnpm-lock.yaml",
     data = ["//:package.json"],
 )
 
-use_repo(npm, "npm")
+use_repo(npm, "tummycrypt_tinyvectors_npm")
