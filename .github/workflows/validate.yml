@@ -24,3 +24,7 @@ jobs:
       - run: npm run smoke:resolve
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
+      - run: npm run smoke:stage1-consumer
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
