@@ -50,7 +50,7 @@ if (modules.length === 0) {
 }
 
 const githubToken =
-	process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+	process.env.TINYLAND_REGISTRY_GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 if (!githubToken && process.env.CI) {
 	console.log(
 		'Skipping Bazel registry smoke: TINYLAND_REGISTRY_GITHUB_TOKEN is not configured for private module tarballs.',
@@ -67,7 +67,7 @@ function writeGitHubCredentialHelper(smokeDir) {
 	fs.writeFileSync(
 		helperPath,
 		`#!/usr/bin/env node
-const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 if (!token) process.exit(1);
 process.stdout.write(JSON.stringify({
   headers: {
