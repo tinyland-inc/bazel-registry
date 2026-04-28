@@ -16,9 +16,13 @@ for forensic comparison only.
 Do not re-add modules by copying the archived snapshot forward. New entries
 must be generated from the standalone repository that owns the package release.
 
-Current active modules:
+Current active modules are the standalone package releases under `modules/`.
+The Stage 1 consumer smoke currently exercises:
 
-- `tummycrypt_tinyvectors@0.2.3`
+- `tummycrypt_tinyland_auth@0.3.0`
+- `tummycrypt_tinyland_auth_pg@0.2.3`
+- `tummycrypt_tinyland_security@0.3.1`
+- `tummycrypt_tinyland_rate_limit@0.3.0`
 
 Known blocker: packages whose standalone `MODULE.bazel` files create an
 Aspect npm extension repo named `npm` cannot yet be composed in one external
