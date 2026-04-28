@@ -1,0 +1,65 @@
+"""
+scheduling-kit - Bazel Module Configuration
+
+Backend-agnostic scheduling library with pluggable adapters, payment processors,
+and Svelte UI components. Published as @tummycrypt/scheduling-kit on npm.
+
+Bzlmod-native configuration for Bazel 8+.
+CI and publishing remain pnpm-driven today; Bazel targets are the hermetic build graph.
+
+Build targets:
+  bazel build //:scheduling_kit       # Svelte package build (dist/)
+  bazel build //:pkg                  # npm-publishable package
+  bazel test //:test                  # Unit tests (vitest)
+  bazel build //:typecheck            # Type validation (svelte-check)
+
+Subpackage targets (finer-grained caching):
+  bazel build //src/core:core         # Types, adapter interface, Effect wrappers
+  bazel build //src/adapters:adapters # HomegrownAdapter (PostgreSQL/Drizzle)
+  bazel build //src/payments:payments # Stripe, Venmo, manual adapters
+  bazel build //src/components:components  # Svelte checkout UI
+"""
+
+module(
+    name = "tummycrypt_scheduling_kit",
+    version = "0.7.0",
+    compatibility_level = 1,
+)
+
+# =============================================================================
+# Core Bazel dependencies
+# =============================================================================
+
+bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+
+# =============================================================================
+# JavaScript / TypeScript toolchain (Aspect Build)
+# =============================================================================
+
+bazel_dep(name = "rules_nodejs", version = "6.7.3")
+bazel_dep(name = "aspect_rules_js", version = "2.9.1")
+bazel_dep(name = "aspect_rules_ts", version = "3.8.4")
+bazel_dep(name = "aspect_rules_swc", version = "2.6.1")
+
+# =============================================================================
+# Node.js toolchain
+# =============================================================================
+
+# =============================================================================
+# pnpm toolchain
+# =============================================================================
+
+# =============================================================================
+# npm dependency resolution from pnpm-lock.yaml
+# =============================================================================
+
+# =============================================================================
+# TypeScript toolchain
+# =============================================================================
+
+# =============================================================================
+# SWC toolchain (fast transpilation)
+# =============================================================================
+
