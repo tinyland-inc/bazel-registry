@@ -1,0 +1,37 @@
+"""
+MODULE.bazel for standalone Bazel consumption of @tummycrypt/tinyvectors.
+
+Usage from external repo:
+  bazel_dep(name = "tummycrypt_tinyvectors", version = "0.2.5")
+"""
+
+module(
+    name = "tummycrypt_tinyvectors",
+    version = "0.2.5",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "aspect_rules_js", version = "2.9.1")
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+bazel_dep(name = "rules_nodejs", version = "6.7.3")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "22.13.1")
+
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
+pnpm.pnpm(
+    name = "pnpm",
+    pnpm_version = "9.15.9",
+)
+use_repo(pnpm, "pnpm")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "tummycrypt_tinyvectors_npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    data = ["//:package.json"],
+)
+
+use_repo(npm, "tummycrypt_tinyvectors_npm")
