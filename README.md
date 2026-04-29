@@ -20,7 +20,7 @@ Current active modules are the standalone package releases under `modules/`.
 The Stage 1 consumer smoke currently exercises:
 
 - `tummycrypt_tinyland_auth@0.3.0`
-- `tummycrypt_tinyland_auth_pg@0.2.3`
+- `tummycrypt_tinyland_auth_pg@0.2.4`
 - `tummycrypt_tinyland_security@0.3.1`
 - `tummycrypt_tinyland_rate_limit@0.3.0`
 
