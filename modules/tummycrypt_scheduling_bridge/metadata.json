@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/Jesssullivan/scheduling-bridge",
+  "maintainers": [
+    {
+      "name": "tinyland",
+      "email": "tinyland@tinyland.dev"
+    }
+  ],
+  "versions": [
+    "0.4.4"
+  ],
+  "yanked_versions": {}
+}
