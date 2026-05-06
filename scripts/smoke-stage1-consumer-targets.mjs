@@ -53,10 +53,25 @@ process.stdout.write(JSON.stringify({
 	return [`--credential_helper=github.com=${helperPath}`];
 }
 
+function resolveBazelCommand() {
+	for (const command of ['bazelisk', 'bazel']) {
+		const probe = spawnSync(command, ['version'], {
+			cwd: root,
+			stdio: 'ignore',
+		});
+		if (!probe.error && probe.status === 0) {
+			return { command, prefixArgs: [] };
+		}
+	}
+
+	return { command: 'npx', prefixArgs: ['--yes', '@bazel/bazelisk'] };
+}
+
 const smokeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tinyland-registry-stage1-consumer-smoke-'));
 let exitCode = 0;
 try {
 	const credentialHelperArgs = writeGitHubCredentialHelper(smokeDir);
+	const bazel = resolveBazelCommand();
 	const moduleBazel = [
 		'module(name = "tinyland_registry_stage1_consumer_smoke", version = "0.0.0")',
 		...modules.map(
@@ -68,8 +83,9 @@ try {
 	fs.writeFileSync(path.join(smokeDir, '.bazelversion'), fs.readFileSync(path.join(root, '.bazelversion')));
 
 	const result = spawnSync(
-		'bazel',
+		bazel.command,
 		[
+			...bazel.prefixArgs,
 			'--ignore_all_rc_files',
 			'build',
 			...targets,
