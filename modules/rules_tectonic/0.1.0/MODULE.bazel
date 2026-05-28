@@ -1,0 +1,25 @@
+module(
+    name = "rules_tectonic",
+    version = "0.1.0",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "platforms", version = "1.0.0")
+
+tectonic_toolchains = use_extension("//tectonic:extensions.bzl", "tectonic_toolchains_ext")
+tectonic_toolchains.from_version(version = "0.16.0")
+use_repo(
+    tectonic_toolchains,
+    "tectonic_linux_amd64",
+    "tectonic_linux_arm64",
+    "tectonic_darwin_amd64",
+    "tectonic_darwin_arm64",
+)
+
+register_toolchains(
+    "//tectonic:tectonic_linux_amd64_toolchain",
+    "//tectonic:tectonic_linux_arm64_toolchain",
+    "//tectonic:tectonic_darwin_amd64_toolchain",
+    "//tectonic:tectonic_darwin_arm64_toolchain",
+)
