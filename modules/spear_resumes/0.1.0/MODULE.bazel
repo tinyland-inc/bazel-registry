@@ -1,0 +1,7 @@
+module(
+    name = "spear_resumes",
+    version = "0.1.0",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "rules_tectonic", version = "0.1.0")
