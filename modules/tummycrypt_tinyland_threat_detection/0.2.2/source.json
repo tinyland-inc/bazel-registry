@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-threat-detection/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-threat-detection-0.2.2",
-  "integrity": "sha256-oAQRZPjsRcidqCflk1rbmqZ3DBIwuu/+7VFWCKaVa9c="
+  "integrity": "sha256-oAQRZPjsRcidqCflk1rbmqZ3DBIwuu/+7VFWCKaVa9c=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-0cG3G9eZQhX6zeNuEvoxMnk1TedEtkX5548ZUNUbU58="
+  },
+  "patch_strip": 1
 }

@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-forms/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-forms-0.2.2",
-  "integrity": "sha256-/nelk3T1qiHbZs9BccusxrRmbD6w0ScDb/bqzK2iSFA="
+  "integrity": "sha256-/nelk3T1qiHbZs9BccusxrRmbD6w0ScDb/bqzK2iSFA=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-BOs71tklmomRDgYkRdLV3e/CawW3k27uZt55wK75bAU="
+  },
+  "patch_strip": 1
 }

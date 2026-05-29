@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-analytics-data/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-analytics-data-0.2.2",
-  "integrity": "sha256-VSZN1qHohy1jHkJKUbEvuNluYzY33dlIDEeuGfhWOQM="
+  "integrity": "sha256-VSZN1qHohy1jHkJKUbEvuNluYzY33dlIDEeuGfhWOQM=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-h14FbJt/9wpvuYC4ea0euiSg1grLYsZA3UC0v//r1Oc="
+  },
+  "patch_strip": 1
 }

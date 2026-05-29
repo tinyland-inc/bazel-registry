@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-prometheus/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-prometheus-0.2.2",
-  "integrity": "sha256-mI+x/xwoJWzyeVqdP6ffU005pqA3madeP4ENqzCVrFk="
+  "integrity": "sha256-mI+x/xwoJWzyeVqdP6ffU005pqA3madeP4ENqzCVrFk=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-R8ipIwl07mh/iK8Wnz+VlR7WY/NUQaUDkB/i6MJPKlo="
+  },
+  "patch_strip": 1
 }

@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-video-thumbnails/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-video-thumbnails-0.2.2",
-  "integrity": "sha256-cq24CM9f08G2oA3aIAC9rLfF+cuwdRV3jId27GJRU64="
+  "integrity": "sha256-cq24CM9f08G2oA3aIAC9rLfF+cuwdRV3jId27GJRU64=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-v4cBPpcvT/OjVSLNe9e5B4JzlPrtRK1zSE9P6H+qV54="
+  },
+  "patch_strip": 1
 }

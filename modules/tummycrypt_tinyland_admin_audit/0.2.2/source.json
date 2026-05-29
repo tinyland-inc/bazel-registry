@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-admin-audit/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-admin-audit-0.2.2",
-  "integrity": "sha256-0lqRwn3eqXRSKbeXTXs1MFG4ERjMYaO7klzGMEGBsxE="
+  "integrity": "sha256-0lqRwn3eqXRSKbeXTXs1MFG4ERjMYaO7klzGMEGBsxE=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-XGFnvW/GFWf9atCfRe9I0ez06J6agSm4x2NLAqSPHZk="
+  },
+  "patch_strip": 1
 }
