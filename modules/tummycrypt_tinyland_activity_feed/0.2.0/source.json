@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-activity-feed/archive/refs/tags/v0.2.0.tar.gz",
   "strip_prefix": "tinyland-activity-feed-0.2.0",
-  "integrity": "sha256-VVtgqgmZ+Eot0+J8jgBJh2Tdntx3146E5xLjaZrD6ok="
+  "integrity": "sha256-VVtgqgmZ+Eot0+J8jgBJh2Tdntx3146E5xLjaZrD6ok=",
+  "patches": {
+    "standalone-build-npm-repo.patch": "sha256-UcvnvYZbFvuCudlKihw1jj/Uov8gr1JxQH6ExfOaRD0="
+  },
+  "patch_strip": 1
 }
