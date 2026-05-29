@@ -1,0 +1,129 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+index bc19a70..a6c8a10 100644
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -7,9 +7,9 @@ Dual-mode build: works with both pnpm (standalone) and Bazel (CI/production).
+ """
+ 
+ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
++load("@tummycrypt_tinyland_offer_builder_npm//:defs.bzl", "npm_link_all_packages")
++load("@tummycrypt_tinyland_offer_builder_npm//:vitest/package_json.bzl", vitest_bin = "bin")
+ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+-load("@npm//:defs.bzl", "npm_link_all_packages")
+-load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+ 
+ npm_link_all_packages(name = "node_modules")
+ 
+@@ -22,7 +22,10 @@ ts_project(
+             "src/**/*.test.ts",
+             "src/**/*.spec.ts",
+         ],
+-    ) + ["package.json"],
++    ) + [
++        "package.json",
++        "tsconfig.base.json",
++    ],
+     declaration = True,
+     declaration_map = True,
+     source_map = True,
+@@ -33,7 +36,6 @@ ts_project(
+     validate = False,
+     deps = [
+         ":node_modules",
+-        "//packages:tsconfig_base",
+         ":node_modules/@types/node",
+     ],
+     visibility = ["//visibility:public"],
+@@ -46,7 +48,7 @@ npm_package(
+         ":tinyland_offer_builder",
+     ],
+     package = "@tummycrypt/tinyland-offer-builder",
+-    version = "0.1.0",
++    version = "0.2.0",
+     visibility = ["//visibility:public"],
+ )
+ 
+@@ -55,7 +57,7 @@ vitest_bin.vitest_test(
+     data = [
+         ":node_modules",
+         "tsconfig.json",
+-        "//packages:tsconfig_base",
++        "tsconfig.base.json",
+         ":node_modules/vitest",
+         "vitest.config.ts",
+     ] + glob(["src/**/*.ts"]) + glob(["tests/**/*.test.ts", "tests/**/*.ts"]),
+@@ -72,6 +74,7 @@ vitest_bin.vitest_test(
+ exports_files(
+     [
+         "package.json",
++        "tsconfig.base.json",
+         "tsconfig.json",
+         "vitest.config.ts",
+     ],
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+new file mode 100644
+index 0000000..5988766
+--- /dev/null
++++ b/pnpm-workspace.yaml
+@@ -0,0 +1,3 @@
++packages:
++  - "."
++onlyBuiltDependencies: []
+diff --git a/src/offer-builder.ts b/src/offer-builder.ts
+index d6d1251..37bbc08 100644
+--- a/src/offer-builder.ts
++++ b/src/offer-builder.ts
+@@ -318,7 +318,7 @@ export class OfferBuilderService {
+ 			monero: 'Monero',
+ 			stripe: 'Credit Card',
+ 			polar: 'Polar Subscription',
+-			talar: 'GNU Taler',
++			taler: 'GNU Taler',
+ 			repository: 'Source Code',
+ 			documentation: 'Documentation',
+ 			booking: 'Book Appointment',
+diff --git a/src/transaction-mappings.ts b/src/transaction-mappings.ts
+index e932790..bf7e751 100644
+--- a/src/transaction-mappings.ts
++++ b/src/transaction-mappings.ts
+@@ -93,8 +93,8 @@ export const TRANSACTION_MAPPINGS: Record<string, TransactionMapping> = {
+ 		isSubscription: true,
+ 		isDonation: false
+ 	},
+-	talar: {
+-		transactionType: 'talar',
++	taler: {
++		transactionType: 'taler',
+ 		schemaType: 'Offer',
+ 		paymentMethods: ['BankTransfer', 'PaymentService'],
+ 		defaultAvailability: 'InStock',
+diff --git a/tests/offer-builder.test.ts b/tests/offer-builder.test.ts
+index edb124b..1a7f32a 100644
+--- a/tests/offer-builder.test.ts
++++ b/tests/offer-builder.test.ts
+@@ -229,7 +229,7 @@ describe('Config DI', () => {
+ describe('TRANSACTION_MAPPINGS', () => {
+ 	const ALL_TYPES = [
+ 		'inquiry', 'ebay', 'etsy', 'amazon', 'snail-mail',
+-		'monero', 'stripe', 'polar', 'talar', 'repository',
++		'monero', 'stripe', 'polar', 'taler', 'repository',
+ 		'documentation', 'booking', 'liberapay', 'kofi', 'contribute-to-consume',
+ 	];
+ 
+@@ -689,14 +689,14 @@ describe('buildAllOffers', () => {
+ 				transactions: [
+ 					{ type: 'stripe', enabled: true, price: 10, priority: 1 },
+ 					{ type: 'monero', enabled: true, price: 0.5, currency: 'XMR', priority: 10 },
+-					{ type: 'talar', enabled: true, price: 5, priority: 5 },
++					{ type: 'taler', enabled: true, price: 5, priority: 5 },
+ 				],
+ 			},
+ 		});
+ 		const offers = svc.buildAllOffers(product, BASE_URL);
+ 		expect(offers).toHaveLength(3);
+ 		expect(offers[0].transactionType).toBe('monero');
+-		expect(offers[1].transactionType).toBe('talar');
++		expect(offers[1].transactionType).toBe('taler');
+ 		expect(offers[2].transactionType).toBe('stripe');
+ 	});
+ 

@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/tinyland-inc/tinyland-offer-builder/archive/refs/tags/v0.2.0.tar.gz",
+  "strip_prefix": "tinyland-offer-builder-0.2.0",
+  "integrity": "sha256-Q8O4G5l2zorf1RtqZfecf7qJsq72sTJNzxkd5+JH7mk=",
+  "patches": {
+    "standalone-build-taler.patch": "sha256-iWIV1nW0jYHBVgN5eszwIkGsVQS5/0bog5WhUdUPnWk="
+  },
+  "patch_strip": 1
+}
