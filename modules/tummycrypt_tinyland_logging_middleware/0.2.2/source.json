@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-logging-middleware/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-logging-middleware-0.2.2",
-  "integrity": "sha256-0KIygk4VVLI0nm0445GxkkgMuaUbGLIKM4RdGDowkko="
+  "integrity": "sha256-0KIygk4VVLI0nm0445GxkkgMuaUbGLIKM4RdGDowkko=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-k0CDZp3lhOgyF5N9G0Ieg4l/AYZzWn5CsbGQxSQGeZE="
+  },
+  "patch_strip": 1
 }

@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-a11y-logger/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-a11y-logger-0.2.2",
-  "integrity": "sha256-jzwRXx9nhXYvwszxuMny6Zazp3GfLHN5ir8NYyFBgA0="
+  "integrity": "sha256-jzwRXx9nhXYvwszxuMny6Zazp3GfLHN5ir8NYyFBgA0=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-9NMDYSF1WdnNRRzZ36zLMPjMDAaPC4Ux48mPgcNeUYY="
+  },
+  "patch_strip": 1
 }

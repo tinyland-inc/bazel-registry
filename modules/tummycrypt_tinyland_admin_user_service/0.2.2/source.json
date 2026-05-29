@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-admin-user-service/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-admin-user-service-0.2.2",
-  "integrity": "sha256-EXOyPu1dH+yaKfj9X8mYohPF0vnnogrFXBzVMkH7ATQ="
+  "integrity": "sha256-EXOyPu1dH+yaKfj9X8mYohPF0vnnogrFXBzVMkH7ATQ=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-kj1NwQ6EUjo1YYBIuRtkkfBpgv9pjv9JMtZnC2My0sM="
+  },
+  "patch_strip": 1
 }

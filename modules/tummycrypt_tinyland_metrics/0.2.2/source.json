@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-metrics/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-metrics-0.2.2",
-  "integrity": "sha256-5nNVJ5FGfNha5U8GT/BnhOqQMM+n8kvF4d+ZSoX1MZo="
+  "integrity": "sha256-5nNVJ5FGfNha5U8GT/BnhOqQMM+n8kvF4d+ZSoX1MZo=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-+PK/Nfd3VbU8+GKcHe17vjHjjBawj9shWJmbFgakSV8="
+  },
+  "patch_strip": 1
 }

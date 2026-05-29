@@ -1,5 +1,9 @@
 {
   "url": "https://github.com/tinyland-inc/vite-plugin-a11y/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "vite-plugin-a11y-0.2.2",
-  "integrity": "sha256-7Ek2comJXMzKJGb+u9HIXSN6PgRWLbfzC61Ql/xL35g="
+  "integrity": "sha256-7Ek2comJXMzKJGb+u9HIXSN6PgRWLbfzC61Ql/xL35g=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-RobvZiYHzr31c+BgkaV5gYr3TKU58obDhHVm7hjSuy4="
+  },
+  "patch_strip": 1
 }
