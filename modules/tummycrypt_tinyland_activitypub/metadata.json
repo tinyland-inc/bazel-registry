@@ -10,7 +10,8 @@
     "0.2.2",
     "0.2.3",
     "0.2.4",
-    "0.2.5"
+    "0.2.5",
+    "0.3.0"
   ],
   "yanked_versions": {
     "0.2.2": "TIN-2416: standalone module defaults ActivityPub actor/object origin to the apex host (transscendsurvival.org-class leak), superseded by the hub-anchored emitter (tinyland.dev PR #623). Apply only after tinyland.dev drops the bazel_dep (patches 02/03) and confirms zero remaining consumers via `bazel mod deps`.",
