@@ -1,0 +1,15 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+index e2edc2d..2ed0e50 100644
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -20,8 +20,8 @@ Dual-mode build: works with both pnpm (standalone) and Bazel (CI/production).
+ 
+ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+-load("@npm//:defs.bzl", "npm_link_all_packages")
+-load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
++load("@tummycrypt_vite_plugin_a11y_npm//:defs.bzl", "npm_link_all_packages")
++load("@tummycrypt_vite_plugin_a11y_npm//:vitest/package_json.bzl", vitest_bin = "bin")
+ 
+ # =============================================================================
+ # npm link - makes node_modules available for this package
