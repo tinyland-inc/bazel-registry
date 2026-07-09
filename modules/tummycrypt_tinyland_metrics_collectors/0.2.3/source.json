@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/tinyland-inc/tinyland-metrics-collectors/archive/refs/tags/v0.2.2.tar.gz",
+  "strip_prefix": "tinyland-metrics-collectors-0.2.2",
+  "integrity": "sha256-ZyCEnhxFbGutDre6W8WkMcXWNbsemk5uK8XOd+iyL+k=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-gc/bB+Mgxa/pOqqRp48fXWkDo8oOSbHq8piVbsfWSHo="
+  },
+  "patch_strip": 1
+}

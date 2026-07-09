@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/tinyland-inc/tinyland-credentials-generator/archive/refs/tags/v0.2.2.tar.gz",
+  "strip_prefix": "tinyland-credentials-generator-0.2.2",
+  "integrity": "sha256-o20bRUP7DMNCUneMgUzy9bkgwZAyhH7YpVf+bwvWSck=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-FpBAONLfk/PTs7JUc8A6L5QYJ3S+NNKvDRA1x7RcgWs="
+  },
+  "patch_strip": 1
+}

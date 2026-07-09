@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/tinyland-inc/tinyland-logging/archive/refs/tags/v0.2.2.tar.gz",
+  "strip_prefix": "tinyland-logging-0.2.2",
+  "integrity": "sha256-CE5BwRvYZXJt6oGZ24Q0aw9NGnpoSzjdusd5y66w4bA=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-8FNQJTOLz09V9X23yWjRYfgHc4d2yZbYIUUUzPAw0pw="
+  },
+  "patch_strip": 1
+}
