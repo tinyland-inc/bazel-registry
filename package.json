@@ -4,7 +4,8 @@
   "type": "module",
   "packageManager": "npm@10.9.0",
   "scripts": {
-    "validate": "node scripts/validate-registry.mjs",
+    "validate": "npm run test:aspect-rules-ts-versions && node scripts/validate-registry.mjs",
+    "test:aspect-rules-ts-versions": "node --test scripts/validate-aspect-rules-ts-versions.test.mjs",
     "smoke:resolve": "node scripts/smoke-active-registry.mjs",
     "smoke:stage1-consumer": "node scripts/smoke-stage1-consumer-targets.mjs"
   }
