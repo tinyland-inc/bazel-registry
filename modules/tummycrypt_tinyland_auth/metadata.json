@@ -14,7 +14,10 @@
     "0.4.0",
     "0.5.0",
     "0.6.0",
-    "0.7.0"
+    "0.7.0",
+    "0.7.1"
   ],
-  "yanked_versions": {}
+  "yanked_versions": {
+    "0.7.0": "TIN-2647/TIN-2783: non-root module requests TypeScript 6.0.3 from the shared aspect_rules_ts extension, conflicting with the coordinated first-party 5.9.3 graph. Superseded by 0.7.1."
+  }
 }
