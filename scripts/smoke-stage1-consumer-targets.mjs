@@ -10,7 +10,7 @@ const modules = [
 	{ moduleName: 'tummycrypt_tinyland_auth', version: '0.3.0' },
 	{ moduleName: 'tummycrypt_tinyland_auth_pg', version: '0.2.4' },
 	{ moduleName: 'tummycrypt_tinyland_auth_redis', version: '0.1.3' },
-	{ moduleName: 'tummycrypt_tinyland_security', version: '0.3.1' },
+	{ moduleName: 'tummycrypt_tinyland_security', version: '0.3.2' },
 	{ moduleName: 'tummycrypt_tinyland_rate_limit', version: '0.3.0' },
 ];
 
