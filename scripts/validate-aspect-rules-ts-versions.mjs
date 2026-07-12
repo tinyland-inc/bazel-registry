@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ASPECT_RULES_TS_EXTENSION = '@aspect_rules_ts//ts:extensions.bzl';
+const DEFAULT_TYPESCRIPT_REPOSITORY = 'npm_typescript';
 const MAX_UNSIGNED_LONG = (1n << 64n) - 1n;
 const VERSION_PATTERN =
 	/^(?<release>[a-zA-Z0-9.]+)(?:-(?<prerelease>[a-zA-Z0-9.-]+))?(?:\+[a-zA-Z0-9.-]+)?$/;
@@ -442,6 +443,125 @@ function resolveBooleanExpression(tokens, source, context) {
 	return undefined;
 }
 
+function normalizeLabelPath(label, source, context, token) {
+	let repository = '';
+	let remainder;
+
+	if (label.startsWith(':')) {
+		remainder = label;
+	} else {
+		const separator = label.indexOf('//');
+		if (separator === -1) {
+			throw diagnostic(
+				context,
+				source,
+				token.start,
+				'ts_version_from must use an absolute or root-relative canonical label',
+			);
+		}
+		repository = label.slice(0, separator);
+		remainder = label.slice(separator + 2);
+		if (repository && repository !== '@' && !/^@@?[A-Za-z0-9._+~-]+$/.test(repository)) {
+			throw diagnostic(context, source, token.start, `unsupported label repository ${repository}`);
+		}
+	}
+
+	let packagePath = '';
+	let target;
+	if (remainder.startsWith(':')) {
+		target = remainder.slice(1);
+	} else {
+		const colon = remainder.indexOf(':');
+		if (colon === -1) {
+			packagePath = remainder;
+			target = packagePath.split('/').at(-1);
+		} else {
+			if (remainder.indexOf(':', colon + 1) !== -1) {
+				throw diagnostic(context, source, token.start, 'ts_version_from label has multiple colons');
+			}
+			packagePath = remainder.slice(0, colon);
+			target = remainder.slice(colon + 1);
+		}
+	}
+
+	if (
+		!target ||
+		packagePath.startsWith('/') ||
+		packagePath.endsWith('/') ||
+		packagePath.split('/').some((segment) => segment === '.' || segment === '..')
+	) {
+		throw diagnostic(context, source, token.start, `unsupported canonical label ${JSON.stringify(label)}`);
+	}
+
+	return { normalizedPath: `//${packagePath}:${target}`, repository };
+}
+
+function resolveLabelExpression(
+	tokens,
+	bindings,
+	repositoryMappings,
+	moduleVersion,
+	source,
+	context,
+) {
+	const expression = stripWrappingParentheses(tokens, source, context);
+	if (
+		expression.length === 1 &&
+		expression[0].type === 'identifier' &&
+		expression[0].value === 'None'
+	) {
+		return { display: undefined, identity: undefined, token: expression[0] };
+	}
+
+	const resolved = resolveStringExpression(expression, bindings, source, context);
+	if (!resolved) {
+		return undefined;
+	}
+	const { normalizedPath, repository } = normalizeLabelPath(
+		resolved.value,
+		source,
+		context,
+		resolved.token,
+	);
+
+	let repositoryIdentity;
+	if (!repository) {
+		repositoryIdentity = `module:${moduleVersion}`;
+	} else if (repository === '@') {
+		throw diagnostic(
+			context,
+			source,
+			resolved.token.start,
+			'ts_version_from @// labels are ambiguous outside the root module; use a local // label or exact @@ canonical label',
+		);
+	} else if (repository.startsWith('@@')) {
+		repositoryIdentity = `canonical:${repository.slice(2)}`;
+	} else {
+		const apparentName = repository.slice(1);
+		const mappedModule = repositoryMappings.get(apparentName);
+		if (!mappedModule) {
+			throw diagnostic(
+				context,
+				source,
+				resolved.token.start,
+				`cannot resolve ts_version_from repository @${apparentName}; declare its bazel_dep() before the tag`,
+			);
+		}
+		throw diagnostic(
+			context,
+			source,
+			resolved.token.start,
+			`ts_version_from apparent repository @${apparentName} is ambiguous under Bzlmod version selection; use a local // label or exact @@ canonical label`,
+		);
+	}
+
+	return {
+		display: resolved.value,
+		identity: `${repositoryIdentity}${normalizedPath}`,
+		token: resolved.token,
+	};
+}
+
 function parseDirectCall(tokens, calleeIndex, source, context) {
 	if (tokens[calleeIndex + 1]?.value !== '(') {
 		return undefined;
@@ -534,7 +654,28 @@ function parseBazelDep(statement, bindings, repositoryMappings, source, context)
 function isAspectRulesTsExtensionLabel(label, repositoryMappings, source, context, token) {
 	const canonical = /^@@([^/]+)\/\/ts:extensions\.bzl$/.exec(label);
 	if (canonical) {
-		return canonical[1].startsWith('aspect_rules_ts+');
+		const repository = canonical[1];
+		if (repository === 'aspect_rules_ts+') {
+			return true;
+		}
+		const legacyVersion = /^aspect_rules_ts~(.+)$/.exec(repository)?.[1];
+		if (legacyVersion) {
+			try {
+				parseBazelVersion(legacyVersion);
+				return true;
+			} catch {
+				// Fall through to the fail-closed diagnostic below.
+			}
+		}
+		if (repository.startsWith('aspect_rules_ts')) {
+			throw diagnostic(
+				context,
+				source,
+				token.start,
+				`unsupported aspect_rules_ts canonical repository ${repository}; update the guard for this Bazel naming scheme`,
+			);
+		}
+		return false;
 	}
 
 	const apparent = /^@([^@/]+)\/\/ts:extensions\.bzl$/.exec(label);
@@ -686,7 +827,15 @@ function parseUseExtension(rhs, bindings, repositoryMappings, source, context) {
 	};
 }
 
-function parseAspectDeps(statement, extension, bindings, source, context) {
+function parseAspectDeps(
+	statement,
+	extension,
+	bindings,
+	repositoryMappings,
+	moduleVersion,
+	source,
+	context,
+) {
 	const call = parseDirectCall(statement, 2, source, context);
 	if (!call || call.closeIndex !== statement.length - 1) {
 		throw diagnostic(
@@ -697,7 +846,13 @@ function parseAspectDeps(statement, extension, bindings, source, context) {
 		);
 	}
 
-	let tsVersion;
+	const values = {
+		name: DEFAULT_TYPESCRIPT_REPOSITORY,
+		tsIntegrity: '',
+		tsVersion: '',
+		tsVersionFrom: { display: undefined, identity: undefined },
+	};
+	const seenArguments = new Set();
 	for (const rawArg of call.args) {
 		const arg = parseArgument(rawArg);
 		if (!arg.name) {
@@ -708,47 +863,125 @@ function parseAspectDeps(statement, extension, bindings, source, context) {
 				'aspect_rules_ts deps() arguments must be named',
 			);
 		}
-		if (arg.name !== 'ts_version') {
+		if (!['name', 'ts_integrity', 'ts_version', 'ts_version_from'].includes(arg.name)) {
+			throw diagnostic(
+				context,
+				source,
+				rawArg[0].start,
+				`unsupported aspect_rules_ts deps() argument ${arg.name}; update the guard for the new tag schema`,
+			);
+		}
+		if (seenArguments.has(arg.name)) {
+			throw diagnostic(context, source, rawArg[0].start, `duplicate ${arg.name} argument`);
+		}
+		seenArguments.add(arg.name);
+
+		if (arg.name === 'ts_version_from') {
+			const label = resolveLabelExpression(
+				arg.expression,
+				bindings,
+				repositoryMappings,
+				moduleVersion,
+				source,
+				context,
+			);
+			if (!label) {
+				throw diagnostic(
+					context,
+					source,
+					arg.expression[0]?.start ?? rawArg[0].start,
+					'ts_version_from must be None, a canonical label string, or a simple string constant',
+				);
+			}
+			values.tsVersionFrom = label;
 			continue;
 		}
-		if (tsVersion) {
-			throw diagnostic(context, source, rawArg[0].start, 'duplicate ts_version argument');
-		}
-		tsVersion = resolveStringExpression(arg.expression, bindings, source, context);
-		if (!tsVersion) {
+
+		const value = resolveStringExpression(arg.expression, bindings, source, context);
+		if (!value) {
 			throw diagnostic(
 				context,
 				source,
 				arg.expression[0]?.start ?? rawArg[0].start,
-				'ts_version must be a canonical string literal or simple string constant',
+				`${arg.name} must be a canonical string literal or simple string constant`,
 			);
+		}
+		if (arg.name === 'name') {
+			values.name = value.value;
+		} else if (arg.name === 'ts_integrity') {
+			values.tsIntegrity = value.value;
+		} else {
+			values.tsVersion = value.value;
 		}
 	}
 
-	if (!tsVersion) {
-		throw diagnostic(context, source, statement[0].start, 'aspect_rules_ts deps() must declare ts_version');
-	}
-	const location = sourceLocation(source, tsVersion.token.start);
+	const location = sourceLocation(source, statement[0].start);
 	extension.requests.push({
 		column: location.column,
 		line: location.line,
-		tsVersion: tsVersion.value,
+		name: values.name,
+		tsIntegrity: values.tsIntegrity,
+		tsVersion: values.tsVersion,
+		tsVersionFrom: values.tsVersionFrom.display,
+		tsVersionFromIdentity: values.tsVersionFrom.identity,
 	});
 }
 
-function findAspectDepsReference(statement, bindings) {
-	for (let index = 0; index + 2 < statement.length; index += 1) {
-		const extension = bindings.get(statement[index].value);
-		if (
-			extension?.kind === 'extension' &&
-			extension.target &&
-			statement[index + 1]?.value === '.' &&
-			statement[index + 2]?.value === 'deps'
-		) {
-			return { extension, index };
+function findAspectExtensionReferences(statement, bindings) {
+	const references = [];
+	for (let index = 0; index < statement.length; index += 1) {
+		const token = statement[index];
+		if (token.type !== 'identifier') {
+			continue;
+		}
+		const extension = bindings.get(token.value);
+		if (extension?.kind === 'extension' && extension.target) {
+			references.push({ extension, index, token });
 		}
 	}
-	return undefined;
+	return references;
+}
+
+function directAspectDepsReference(statement, references, source, context) {
+	if (
+		references.length !== 1 ||
+		references[0].index !== 0 ||
+		statement[1]?.value !== '.' ||
+		statement[2]?.value !== 'deps' ||
+		statement[3]?.value !== '('
+	) {
+		return undefined;
+	}
+	const call = parseDirectCall(statement, 2, source, context);
+	return call?.closeIndex === statement.length - 1 ? references[0] : undefined;
+}
+
+function isSimpleExtensionAliasAssignment(statement, references, source, context) {
+	if (
+		references.length !== 1 ||
+		statement[0]?.type !== 'identifier' ||
+		statement[1]?.value !== '='
+	) {
+		return false;
+	}
+	const expression = stripWrappingParentheses(statement.slice(2), source, context);
+	return expression.length === 1 && expression[0] === references[0].token;
+}
+
+function isDirectRepositoryManagementCall(statement, references, source, context) {
+	if (
+		references.length !== 1 ||
+		!['inject_repo', 'override_repo', 'use_repo'].includes(statement[0]?.value)
+	) {
+		return false;
+	}
+	const call = parseDirectCall(statement, 0, source, context);
+	if (!call || call.closeIndex !== statement.length - 1 || call.args.length === 0) {
+		return false;
+	}
+	const proxyArgument = parseArgument(call.args[0]);
+	const expression = stripWrappingParentheses(proxyArgument.expression, source, context);
+	return !proxyArgument.name && expression.length === 1 && expression[0] === references[0].token;
 }
 
 function findAspectRulesTsRequests(moduleBazel, moduleVersion) {
@@ -762,37 +995,84 @@ function findAspectRulesTsRequests(moduleBazel, moduleVersion) {
 	const aspectUsages = [];
 
 	for (const statement of statements) {
+		const includeToken = statement.find(
+			(token) => token.type === 'identifier' && token.value === 'include',
+		);
+		if (includeToken) {
+			throw diagnostic(
+				context,
+				moduleBazel,
+				includeToken.start,
+				'include() fragments are unsupported because they may conceal extension tags',
+			);
+		}
 		if (statement[0]?.value === 'bazel_dep' && statement[1]?.value === '(') {
 			parseBazelDep(statement, bindings, repositoryMappings, moduleBazel, context);
 			continue;
 		}
 
-		const assignment = statement[0]?.type === 'identifier' && statement[1]?.value === '=';
-		const depsReference = findAspectDepsReference(statement, bindings);
-		if (depsReference) {
-			const directCall =
-				!assignment &&
-				depsReference.index === 0 &&
-				statement[3]?.value === '(';
-			if (depsReference.extension.devDependency || depsReference.extension.isolate) {
-				continue;
-			}
-			if (directCall) {
+		const equalsIndex = topLevelEqualsIndex(statement);
+		const assignment =
+			equalsIndex === 1 &&
+			statement[0]?.type === 'identifier' &&
+			statement[2]?.value !== '=';
+		if (equalsIndex !== -1 && !assignment) {
+			throw diagnostic(
+				context,
+				moduleBazel,
+				statement[equalsIndex].start,
+				'unsupported top-level assignment form; use one identifier and a direct = assignment',
+			);
+		}
+		const extensionReferences = findAspectExtensionReferences(statement, bindings);
+		if (extensionReferences.length) {
+			const depsReference = directAspectDepsReference(
+				statement,
+				extensionReferences,
+				moduleBazel,
+				context,
+			);
+			if (depsReference) {
+				if (depsReference.extension.devDependency || depsReference.extension.isolate) {
+					continue;
+				}
 				parseAspectDeps(
 					statement,
 					depsReference.extension,
 					bindings,
+					repositoryMappings,
+					moduleVersion,
 					moduleBazel,
 					context,
 				);
 				continue;
 			}
+			if (
+				isSimpleExtensionAliasAssignment(
+					statement,
+					extensionReferences,
+					moduleBazel,
+					context,
+				)
+			) {
+				// The generic assignment path below preserves the proxy identity.
+			} else if (
+				isDirectRepositoryManagementCall(
+					statement,
+					extensionReferences,
+					moduleBazel,
+					context,
+				)
+			) {
+				continue;
+			} else {
 			throw diagnostic(
 				context,
 				moduleBazel,
-				statement[depsReference.index].start,
-				'aspect_rules_ts deps() must be a direct canonical call',
+				extensionReferences[0].token.start,
+				'unsupported aspect_rules_ts extension proxy use; use a direct proxy.deps(...) call',
 			);
+			}
 		}
 
 		if (assignment) {
@@ -861,7 +1141,7 @@ function findAspectRulesTsRequests(moduleBazel, moduleVersion) {
 				context,
 				moduleBazel,
 				usage.token.start,
-				'aspect_rules_ts extension usage must declare deps(ts_version = "...")',
+				'aspect_rules_ts extension usage must declare at least one direct deps(...) tag',
 			);
 		}
 	}
@@ -869,28 +1149,61 @@ function findAspectRulesTsRequests(moduleBazel, moduleVersion) {
 	return aspectUsages.flatMap((usage) => usage.requests);
 }
 
-function formatConflict(requests) {
-	const grouped = new Map();
-	for (const request of requests) {
-		const modules = grouped.get(request.tsVersion) ?? [];
-		modules.push(
-			`${request.moduleName}@${request.version}/MODULE.bazel:${request.line}:${request.column}`,
-		);
-		grouped.set(request.tsVersion, modules);
-	}
+function requestIdentityKey(request) {
+	return JSON.stringify([
+		request.tsVersion,
+		request.tsVersionFromIdentity ?? null,
+		request.tsIntegrity,
+	]);
+}
 
+function findConflictingRequests(requests) {
+	const byName = new Map();
+	for (const request of requests) {
+		const identities = byName.get(request.name) ?? new Map();
+		const key = requestIdentityKey(request);
+		const matchingRequests = identities.get(key) ?? [];
+		matchingRequests.push(request);
+		identities.set(key, matchingRequests);
+		byName.set(request.name, identities);
+	}
+	return [...byName]
+		.filter(([, identities]) => identities.size > 1)
+		.sort(([left], [right]) => left.localeCompare(right));
+}
+
+function formatRequestIdentity(request) {
+	const versionFrom = request.tsVersionFrom === undefined
+		? '(not set)'
+		: `${JSON.stringify(request.tsVersionFrom)} [${request.tsVersionFromIdentity}]`;
+	return [
+		`ts_version=${JSON.stringify(request.tsVersion)}`,
+		`ts_version_from=${versionFrom}`,
+		`ts_integrity=${JSON.stringify(request.tsIntegrity)}`,
+	].join(', ');
+}
+
+function formatConflict(conflicts) {
 	const lines = [
-		'aspect_rules_ts extension ts_version mismatch across greatest non-yanked module versions:',
+		'aspect_rules_ts deps tag mismatch across greatest non-yanked module versions:',
 	];
-	for (const [tsVersion, modules] of [...grouped].sort(([left], [right]) =>
-		left.localeCompare(right, undefined, { numeric: true }),
-	)) {
-		lines.push(`  ts_version ${tsVersion}:`);
-		for (const moduleVersion of modules.sort()) {
-			lines.push(`    - ${moduleVersion}`);
+	for (const [name, identities] of conflicts) {
+		lines.push(`  name ${JSON.stringify(name)}:`);
+		for (const matchingRequests of identities.values()) {
+			const [representative] = matchingRequests;
+			lines.push(`    ${formatRequestIdentity(representative)}:`);
+			for (const request of matchingRequests.sort((left, right) =>
+				`${left.moduleName}@${left.version}`.localeCompare(`${right.moduleName}@${right.version}`),
+			)) {
+				lines.push(
+					`      - ${request.moduleName}@${request.version}/MODULE.bazel:${request.line}:${request.column}`,
+				);
+			}
 		}
 	}
-	lines.push(`All modules sharing ${ASPECT_RULES_TS_EXTENSION} must request one ts_version.`);
+	lines.push(
+		`Non-root tags sharing a name in ${ASPECT_RULES_TS_EXTENSION} must match ts_version, ts_version_from, and ts_integrity.`,
+	);
 
 	return lines.join('\n');
 }
@@ -928,13 +1241,16 @@ export function validateAspectRulesTsVersions({ modulesDir }) {
 		}
 	}
 
-	const tsVersions = new Set(requests.map((request) => request.tsVersion));
-	if (tsVersions.size > 1) {
-		throw new Error(formatConflict(requests));
+	const conflicts = findConflictingRequests(requests);
+	if (conflicts.length) {
+		throw new Error(formatConflict(conflicts));
 	}
+	const tsVersions = new Set(requests.map((request) => request.tsVersion));
+	const tagNames = new Set(requests.map((request) => request.name));
 
 	return {
 		requests,
-		tsVersion: requests[0]?.tsVersion,
+		tagNames: [...tagNames].sort(),
+		tsVersion: tsVersions.size === 1 ? requests[0]?.tsVersion : undefined,
 	};
 }

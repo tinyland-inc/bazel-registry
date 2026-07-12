@@ -127,6 +127,6 @@ console.log(
 );
 if (aspectRulesTsValidation?.requests.length) {
 	console.log(
-		`Validated aspect_rules_ts ts_version ${aspectRulesTsValidation.tsVersion} across ${aspectRulesTsValidation.requests.length} greatest non-yanked module versions`,
+		`Validated ${aspectRulesTsValidation.requests.length} aspect_rules_ts deps tag identities across ${aspectRulesTsValidation.tagNames.length} repository names in greatest non-yanked module versions`,
 	);
 }

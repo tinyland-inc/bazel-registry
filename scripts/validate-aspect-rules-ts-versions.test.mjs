@@ -100,9 +100,9 @@ test('divergent ts_version requests fail with module and version diagnostics', (
 	assert.throws(
 		() => validate(root),
 		(error) => {
-			assert.match(error.message, /aspect_rules_ts extension ts_version mismatch/);
-			assert.match(error.message, /ts_version 5\.9\.3:[\s\S]*module_a@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
-			assert.match(error.message, /ts_version 6\.0\.3:[\s\S]*module_b@2\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			assert.match(error.message, /aspect_rules_ts deps tag mismatch/);
+			assert.match(error.message, /ts_version="5\.9\.3"[\s\S]*module_a@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			assert.match(error.message, /ts_version="6\.0\.3"[\s\S]*module_b@2\.0\.0\/MODULE\.bazel:\d+:\d+/);
 			return true;
 		},
 	);
@@ -246,11 +246,46 @@ rules_ts.deps(ts_version = "6.0.3")
 			version: '1.0.0',
 		},
 	]);
+	writeModule(root, 'legacy_canonical', [
+		{
+			source: `module(name = "legacy_canonical", version = "1.0.0")
+bazel_dep(name = "aspect_rules_ts", version = "3.8.4", repo_name = None)
+rules_ts = use_extension("@@aspect_rules_ts~3.8.4//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "6.0.3")
+`,
+			version: '1.0.0',
+		},
+	]);
 
 	const result = validate(root);
 
 	assert.equal(result.tsVersion, '6.0.3');
-	assert.equal(result.requests.length, 2);
+	assert.equal(result.requests.length, 3);
+});
+
+test('unknown aspect_rules_ts canonical repository schemes fail closed', (t) => {
+	for (const [moduleName, repository] of [
+		['future_canonical', 'aspect_rules_ts++future'],
+		['alternate_canonical', 'aspect_rules_ts.3.8.4'],
+		['versionless_legacy_canonical', 'aspect_rules_ts~'],
+	]) {
+		const root = fixture(t);
+		writeModule(root, moduleName, [
+			{
+				source: `module(name = "${moduleName}", version = "1.0.0")
+bazel_dep(name = "aspect_rules_ts", version = "3.8.4", repo_name = None)
+rules_ts = use_extension("@@${repository}//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "6.0.3")
+`,
+				version: '1.0.0',
+			},
+		]);
+
+		assert.throws(
+			() => validate(root),
+			new RegExp(`${moduleName}@1\\.0\\.0/MODULE\\.bazel:\\d+:\\d+: unsupported aspect_rules_ts canonical repository`),
+		);
+	}
 });
 
 test('apparent repository collisions do not impersonate aspect_rules_ts', (t) => {
@@ -312,7 +347,7 @@ ignored = rules_ts.deps(ts_version = "6.0.3")
 
 	assert.throws(
 		() => validate(root),
-		/assigned_tag@1\.0\.0\/MODULE\.bazel:5:\d+: aspect_rules_ts deps\(\) must be a direct canonical call/,
+		/assigned_tag@1\.0\.0\/MODULE\.bazel:5:\d+: unsupported aspect_rules_ts extension proxy use/,
 	);
 
 	const aliasRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspect-rules-ts-method-alias-'));
@@ -330,8 +365,321 @@ tag(ts_version = "6.0.3")
 	]);
 	assert.throws(
 		() => validate(aliasRoot),
-		/method_alias@1\.0\.0\/MODULE\.bazel:4:\d+: aspect_rules_ts deps\(\) must be a direct canonical call/,
+		/method_alias@1\.0\.0\/MODULE\.bazel:4:\d+: unsupported aspect_rules_ts extension proxy use/,
 	);
+});
+
+test('dynamic and container-carried extension proxies fail closed', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'getattr_hidden_tag', [
+		{
+			source: `module(name = "getattr_hidden_tag", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "5.9.3")
+getattr(rules_ts, "deps")(ts_version = "6.0.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		/getattr_hidden_tag@1\.0\.0\/MODULE\.bazel:5:\d+: unsupported aspect_rules_ts extension proxy use; use a direct proxy\.deps\(\.\.\.\) call/,
+	);
+
+	const listRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspect-rules-ts-list-proxy-'));
+	t.after(() => fs.rmSync(listRoot, { recursive: true, force: true }));
+	writeModule(listRoot, 'list_hidden_tag', [
+		{
+			source: `module(name = "list_hidden_tag", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "5.9.3")
+proxies = [rules_ts]
+proxies[0].deps(ts_version = "6.0.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(listRoot),
+		/list_hidden_tag@1\.0\.0\/MODULE\.bazel:5:\d+: unsupported aspect_rules_ts extension proxy use; use a direct proxy\.deps\(\.\.\.\) call/,
+	);
+
+	for (const [moduleName, carriage] of [
+		['tuple_hidden_tag', 'proxies = (rules_ts,)'],
+		['dict_hidden_tag', 'proxies = {"typescript": rules_ts}'],
+	]) {
+		const carriageRoot = fs.mkdtempSync(
+			path.join(os.tmpdir(), `aspect-rules-ts-${moduleName}-`),
+		);
+		t.after(() => fs.rmSync(carriageRoot, { recursive: true, force: true }));
+		writeModule(carriageRoot, moduleName, [
+			{
+				source: `module(name = "${moduleName}", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "5.9.3")
+${carriage}
+`,
+				version: '1.0.0',
+			},
+		]);
+		assert.throws(
+			() => validate(carriageRoot),
+			new RegExp(`${moduleName}@1\\.0\\.0/MODULE\\.bazel:5:\\d+: unsupported aspect_rules_ts extension proxy use`),
+		);
+	}
+});
+
+test('simple proxy aliases and repository-management builtins remain supported', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'canonical_proxy_uses', [
+		{
+			source: `module(name = "canonical_proxy_uses", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+alias = (rules_ts)
+alias.deps(name = "used", ts_version = "5.9.3")
+use_repo(alias, "used")
+alias.deps(name = "injected", ts_version = "5.9.3")
+inject_repo(alias, injected = "existing_typescript")
+alias.deps(name = "overridden", ts_version = "5.9.3")
+override_repo(alias, overridden = "existing_typescript")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	const result = validate(root);
+	assert.deepEqual(result.tagNames, ['injected', 'overridden', 'used']);
+	assert.equal(result.requests.length, 3);
+});
+
+test('dev-first composite calls cannot conceal a shared extension tag', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'dev_first_composite', [
+		{
+			source: `module(name = "dev_first_composite", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+dev_rules_ts = use_extension(
+    "@aspect_rules_ts//ts:extensions.bzl",
+    "ext",
+    dev_dependency = True,
+)
+shared_rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+[
+    dev_rules_ts.deps(ts_version = "6.0.3"),
+    shared_rules_ts.deps(ts_version = "7.0.0"),
+]
+shared_rules_ts.deps(ts_version = "5.9.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		/dev_first_composite@1\.0\.0\/MODULE\.bazel:\d+:\d+: unsupported aspect_rules_ts extension proxy use; use a direct proxy\.deps\(\.\.\.\) call/,
+	);
+});
+
+test('included MODULE fragments fail closed because the guard cannot inspect them', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'included_hidden_tag', [
+		{
+			source: `module(name = "included_hidden_tag", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = "5.9.3")
+include("//:hidden.MODULE.bazel")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		/included_hidden_tag@1\.0\.0\/MODULE\.bazel:5:\d+: include\(\) fragments are unsupported because they may conceal extension tags/,
+	);
+});
+
+test('same ts_version with different ts_integrity conflicts for the same tag name', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'integrity_a', [
+		{
+			source: `module(name = "integrity_a", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(
+    name = "npm_typescript",
+    ts_version = "5.9.3",
+    ts_integrity = "sha512-aaaa",
+)
+`,
+			version: '1.0.0',
+		},
+	]);
+	writeModule(root, 'integrity_b', [
+		{
+			source: `module(name = "integrity_b", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(
+    name = "npm_typescript",
+    ts_version = "5.9.3",
+    ts_integrity = "sha512-bbbb",
+)
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		(error) => {
+			assert.match(error.message, /aspect_rules_ts deps tag mismatch/);
+			assert.match(error.message, /name "npm_typescript"/);
+			assert.match(error.message, /ts_version="5\.9\.3"/);
+			assert.match(error.message, /ts_integrity="sha512-aaaa"/);
+			assert.match(error.message, /ts_integrity="sha512-bbbb"/);
+			assert.match(error.message, /integrity_a@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			assert.match(error.message, /integrity_b@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			return true;
+		},
+	);
+});
+
+test('tag name and ts_version_from participate in conflict identity', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'from_a', [
+		{
+			source: `module(name = "from_a", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(name = "from_package", ts_version_from = "//:package.json")
+rules_ts.deps(name = "independent", ts_version = "5.9.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+	writeModule(root, 'from_b', [
+		{
+			source: `module(name = "from_b", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(name = "from_package", ts_version_from = "//:package.json")
+rules_ts.deps(name = "independent", ts_version = "6.0.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		(error) => {
+			assert.match(error.message, /name "from_package"/);
+			assert.match(error.message, /ts_version_from="\/\/:package\.json"/);
+			assert.match(error.message, /from_a@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			assert.match(error.message, /from_b@1\.0\.0\/MODULE\.bazel:\d+:\d+/);
+			return true;
+		},
+	);
+});
+
+test('apparent external ts_version_from labels fail closed', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'apparent_version_source', [
+		{
+			source: `module(name = "apparent_version_source", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+bazel_dep(name = "version_source", version = "1.0.0")
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version_from = "@version_source//:package.json")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		/apparent_version_source@1\.0\.0\/MODULE\.bazel:\d+:\d+: ts_version_from apparent repository @version_source is ambiguous under Bzlmod version selection/,
+	);
+});
+
+test('root-apparent ts_version_from labels fail closed', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'root_apparent_version_source', [
+		{
+			source: `module(name = "root_apparent_version_source", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version_from = "@//:package.json")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	assert.throws(
+		() => validate(root),
+		/root_apparent_version_source@1\.0\.0\/MODULE\.bazel:\d+:\d+: ts_version_from @\/\/ labels are ambiguous outside the root module/,
+	);
+});
+
+test('different tag names may request different TypeScript identities', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'named_tags', [
+		{
+			source: `module(name = "named_tags", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(name = "typescript_5", ts_version = "5.9.3")
+rules_ts.deps(name = "typescript_6", ts_version = "6.0.3")
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	const result = validate(root);
+	assert.equal(result.requests.length, 2);
+});
+
+test('omitted and explicit tag defaults have the same identity', (t) => {
+	const root = fixture(t);
+	writeModule(root, 'defaults_omitted', [
+		{
+			source: `module(name = "defaults_omitted", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps()
+`,
+			version: '1.0.0',
+		},
+	]);
+	writeModule(root, 'defaults_explicit', [
+		{
+			source: `module(name = "defaults_explicit", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(
+    name = "npm_typescript",
+    ts_version = "",
+    ts_version_from = None,
+    ts_integrity = "",
+)
+`,
+			version: '1.0.0',
+		},
+	]);
+
+	const result = validate(root);
+	assert.equal(result.requests.length, 2);
+	assert.ok(result.requests.every((request) => request.name === 'npm_typescript'));
+	assert.ok(result.requests.every((request) => request.tsVersion === ''));
+	assert.ok(result.requests.every((request) => request.tsVersionFrom === undefined));
+	assert.ok(result.requests.every((request) => request.tsIntegrity === ''));
 });
 
 test('dev-only and isolated extension usages do not join the shared graph', (t) => {
@@ -477,6 +825,32 @@ rules_ts.deps(ts_version = "5.9.3")
 		() => validate(secondRoot),
 		/dynamic_boolean@1\.0\.0\/MODULE\.bazel:\d+:\d+: dev_dependency must be the literal True or False/,
 	);
+});
+
+test('augmented and destructuring assignments fail closed before bindings become stale', (t) => {
+	for (const [moduleName, mutation] of [
+		['augmented_binding', 'typescript_version += ".3"'],
+		['destructured_binding', 'typescript_version, other = ["5.9.3", "ignored"]'],
+	]) {
+		const root = fixture(t);
+		writeModule(root, moduleName, [
+			{
+				source: `module(name = "${moduleName}", version = "1.0.0")
+${ASPECT_BAZEL_DEP}
+typescript_version = "5.9"
+${mutation}
+rules_ts = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts.deps(ts_version = typescript_version)
+`,
+				version: '1.0.0',
+			},
+		]);
+
+		assert.throws(
+			() => validate(root),
+			new RegExp(`${moduleName}@1\\.0\\.0/MODULE\\.bazel:4:\\d+: unsupported top-level assignment form`),
+		);
+	}
 });
 
 test('unterminated canonical calls report module and delimiter location', (t) => {
