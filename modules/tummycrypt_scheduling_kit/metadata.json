@@ -17,7 +17,10 @@
     "0.9.0",
     "0.9.1",
     "0.9.2",
-    "0.11.0"
+    "0.11.0",
+    "0.11.1"
   ],
-  "yanked_versions": {}
+  "yanked_versions": {
+    "0.11.0": "TIN-2764: BUILD.bazel npm_package version attr mismatch inside the release archive (says 0.10.0). Superseded by 0.11.1."
+  }
 }
