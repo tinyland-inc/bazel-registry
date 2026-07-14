@@ -1,0 +1,9 @@
+{
+  "url": "https://github.com/tinyland-inc/vite-plugin-skeleton-colors/archive/refs/tags/v0.2.4.tar.gz",
+  "strip_prefix": "vite-plugin-skeleton-colors-0.2.4",
+  "integrity": "sha256-1wQvOnLlaKe+2JeTCPgInzOKY6W/VklwVBVYQ55urJs=",
+  "patches": {
+    "standalone-npm-repo.patch": "sha256-Z2yFOZUR9zn9CKgagUbnLCxtMhqUxdW43B6EmolVay0="
+  },
+  "patch_strip": 1
+}
