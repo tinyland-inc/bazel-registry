@@ -8,7 +8,10 @@
   ],
   "versions": [
     "0.2.2",
-    "0.2.3"
+    "0.2.3",
+    "0.2.4"
   ],
-  "yanked_versions": {}
+  "yanked_versions": {
+    "0.2.3": "TIN-2850: registry 0.2.3 repacks v0.2.2 source/package metadata; superseded by version-honest 0.2.4."
+  }
 }
