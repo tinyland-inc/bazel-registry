@@ -1,5 +1,6 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-file-logger/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-file-logger-0.2.2",
-  "integrity": "sha256-cNvWvfS14Ac7jj/+qGXRHmHgTmfe2zGRRJcA8xBIq8A="
+  "integrity": "sha256-cNvWvfS14Ac7jj/+qGXRHmHgTmfe2zGRRJcA8xBIq8A=",
+  "archive_type": "tar.gz"
 }

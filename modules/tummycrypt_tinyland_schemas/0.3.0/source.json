@@ -1,5 +1,6 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-schemas/archive/refs/tags/v0.3.0.tar.gz",
   "strip_prefix": "tinyland-schemas-0.3.0",
-  "integrity": "sha256-mswIfuOYfslP8PIHXbfWAVVcmqUvVQmq8sljnEtPIrQ="
+  "integrity": "sha256-mswIfuOYfslP8PIHXbfWAVVcmqUvVQmq8sljnEtPIrQ=",
+  "archive_type": "tar.gz"
 }
