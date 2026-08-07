@@ -1,5 +1,6 @@
 {
   "url": "https://github.com/tinyland-inc/scheduling-bridge/archive/refs/tags/v0.7.1.tar.gz",
   "strip_prefix": "scheduling-bridge-0.7.1",
-  "integrity": "sha256-WNcLQtwCvpmbOwHUZliMfz4k3J4ymZdn4jFHgUt0ezw="
+  "integrity": "sha256-WNcLQtwCvpmbOwHUZliMfz4k3J4ymZdn4jFHgUt0ezw=",
+  "archive_type": "tar.gz"
 }
