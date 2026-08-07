@@ -1,5 +1,6 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-scheduled-publishing/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-scheduled-publishing-0.2.2",
-  "integrity": "sha256-DLRdTHjnGM9sK+Ic4ZBWLwfmuNplflTXvXd15NM+WSE="
+  "integrity": "sha256-DLRdTHjnGM9sK+Ic4ZBWLwfmuNplflTXvXd15NM+WSE=",
+  "archive_type": "tar.gz"
 }

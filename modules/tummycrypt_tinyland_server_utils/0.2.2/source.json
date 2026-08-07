@@ -1,5 +1,6 @@
 {
   "url": "https://github.com/tinyland-inc/tinyland-server-utils/archive/refs/tags/v0.2.2.tar.gz",
   "strip_prefix": "tinyland-server-utils-0.2.2",
-  "integrity": "sha256-uOFuJN2xmm9wHM01M+vVcdtekKdux6QJzsg03FSAX1U="
+  "integrity": "sha256-uOFuJN2xmm9wHM01M+vVcdtekKdux6QJzsg03FSAX1U=",
+  "archive_type": "tar.gz"
 }
