@@ -6,7 +6,7 @@ Step A (TIN-3857) converges the estate on one proven 8.x value and pins this
 registry by exact SHA; Step B says how the estate moves that value onto the
 Bazel 9 latest line, in what order, and what breaks if the order is wrong.
 
-## Reading order and merge order
+## Reading order
 
 This document assumes `docs/bazel-adoption-v0.md` (Step A, TIN-3857) is
 already present and already read. Step A owns the *mechanism* — one
@@ -14,19 +14,14 @@ already present and already read. Step A owns the *mechanism* — one
 endpoint-free `.bazelrc.flywheel`, and the `scaffold-doctor` conformance gate.
 Step B owns the *move*, and does not restate any of it.
 
-Merge order is **Step A, then Step B**. Step A introduces both `README.md` and
-`docs/bazel-adoption-v0.md` on its branch; neither exists on `main` yet, so
-this branch deliberately touches no file that Step A also touches, to keep the
-two branches conflict-free. Once Step A has landed, add this one bullet under
-the README's "Docs" section as a trivial follow-up:
+Step A has landed: `README.md` and `docs/bazel-adoption-v0.md` are both on
+`main`, and the README's "Docs" section already points at this file by name
+under TIN-3897. Nothing further is required to wire the two together. This
+branch still touches no file Step A owns, so it remains a pure addition.
 
-```markdown
-- [`docs/bazel-9x-migration-spec-v0.md`](./docs/bazel-9x-migration-spec-v0.md) —
-  the Bazel 9.x migration spec (Step B, TIN-3897). Follows Step A; specifies
-  the readiness matrix, the 8→9 breaking changes that bind here, the
-  shared-cache blast radius, and the migration/rollback order. Bumps nothing
-  by itself.
-```
+Optional tidy-up, not a blocker: that README reference is backticked plain
+text, and could be turned into a Markdown link to
+`docs/bazel-9x-migration-spec-v0.md` once this lands.
 
 ## Naming and redaction
 
@@ -99,7 +94,7 @@ Latest stable Bazel, verified at authoring time against
 | Latest stable | **9.2.0**, published 2026-07-13 |
 | 9.x line to date | 9.0.0 (2026-01-20, LTS), 9.0.1, 9.0.2, 9.1.0, 9.1.1, 9.2.0 |
 | 8.x line to date | …8.5.0, 8.5.1, 8.6.0, 8.7.0 |
-| Estate value after Step A | 8.2.1 |
+| Current estate value (Step A, merged) | 8.2.1 |
 
 Bazel 9.0 is a major LTS release. Release notes:
 <https://github.com/bazelbuild/bazel/releases/tag/9.0.0>,
@@ -129,7 +124,7 @@ repo's checked-out default branch at authoring time. Re-read GF at its current
 | the private sibling spoke | 8.2.1 (per Step A §1) | Bzlmod | not read here | exact 40-char SHA (origin of the convention, Step A §3) |
 | the private tooling repo | 7.6.0 | Bzlmod only; no `WORKSPACE*` file | 13 | BCR only (no in-house registry lane) |
 | `GloriousFlywheel` (cache substrate) | 7.4.1 | Bzlmod **plus** a vestigial 7-line `WORKSPACE.bazel` | 11 | BCR only |
-| `tinyland-inc/bazel-registry` (this repo) | 8.1.1 on `main`; 8.2.1 after Step A | **not a Bazel workspace** — no `MODULE.bazel`, `WORKSPACE`, `BUILD`, or `.bazelrc` | n/a | n/a |
+| `tinyland-inc/bazel-registry` (this repo) | 8.2.1 on `main` (Step A merged) | **not a Bazel workspace** — no `MODULE.bazel`, `WORKSPACE`, `BUILD`, or `.bazelrc` | n/a | n/a |
 
 Two things this table settles:
 
@@ -846,7 +841,10 @@ never the default, so the no-network invariant Step A §5 states is preserved:
 ships.** Step A's companion spoke change records `estate-bazelversion: 8.2.1`
 while pinning a registry commit that still records 8.1.1 — the spoke's own
 `.bazelrc` documents this and says the post-merge re-pin is what reconciles
-them. A hard failure would therefore red-flag a correctly-executed Step A.
+them. A hard failure would therefore red-flag a correctly-executed Step A. The
+registry side has now merged, so that re-pin is unblocked; but the window
+between a registry bump and each spoke's re-pin is a recurring state, not a
+one-off, so the rule still needs to tolerate it.
 
 Resolution — pick one and state it in the check, do not leave it implicit:
 
