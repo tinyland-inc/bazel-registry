@@ -40,6 +40,32 @@ if (!fs.existsSync(modulesDir)) {
 	fail(`module_base_path does not exist: ${moduleBasePath}`);
 }
 
+// .bazelversion is not read by any direct Bazel invocation at this repo's
+// root (there is no MODULE.bazel/WORKSPACE/BUILD/.bazelrc here) -- it is
+// only ever consumed by copy, into the smoke-test workspaces built by
+// scripts/smoke-active-registry.mjs and scripts/smoke-stage1-consumer-targets.mjs
+// (see docs/bazel-adoption-v0.md #1). That copy step makes a silent drift
+// between .bazelversion and the estate-wide pin invisible to a bare `git
+// diff`, so assert the file's content against the recorded pin in
+// package.json's "bazelEstate.version" instead of trusting a smoke
+// run (network + GitHub-token dependent, and not always run locally) to
+// catch it.
+const packageJsonPath = path.join(root, 'package.json');
+const packageJson = readJson(packageJsonPath);
+const expectedBazelVersion = packageJson.bazelEstate?.version;
+const bazelVersionPath = path.join(root, '.bazelversion');
+const actualBazelVersion = fs.existsSync(bazelVersionPath)
+	? fs.readFileSync(bazelVersionPath, 'utf8').trim()
+	: undefined;
+
+if (!expectedBazelVersion) {
+	fail('package.json bazelEstate.version is not set');
+} else if (actualBazelVersion !== expectedBazelVersion) {
+	fail(
+		`.bazelversion (${actualBazelVersion ?? '<missing>'}) does not match package.json bazelEstate.version (${expectedBazelVersion}); the smoke-test workspaces copy .bazelversion verbatim, so this drift would be silent`,
+	);
+}
+
 if (status === 'archived') {
 	if (!moduleBasePath.startsWith('archive/')) {
 		fail('archived registry status must use an archive/ module_base_path');
