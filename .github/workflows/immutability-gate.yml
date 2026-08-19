@@ -1,12 +1,21 @@
 name: Immutability gate
 
+# RUNNER CLASS (TIN-3914): see validate.yml. GitHub-hosted runners abort in this
+# org with a billing-lock error, so this gate runs on the GloriousFlywheel
+# cache-fronted ARC pool (`tinyland-nix`). The gate needs only `git`, which the
+# runner image bakes in; `fetch-depth: 0` still supplies the merge-base history
+# the script resolves against `origin/$GITHUB_BASE_REF`.
+
 on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   immutability-gate:
-    runs-on: ubuntu-latest
+    runs-on: tinyland-nix
     steps:
       - uses: actions/checkout@v4
         with:

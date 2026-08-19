@@ -1,5 +1,19 @@
 name: Validate registry
 
+# RUNNER CLASS (TIN-3914): GitHub-hosted runners are not available to this org
+# — hosted jobs abort with "The job was not started because your account is
+# locked due to a billing issue" before step 1 executes. This workflow runs on
+# the GloriousFlywheel cache-fronted ARC pool (`tinyland-nix`), matching the
+# estate convention used by greatfallstoolbus.org and GloriousFlywheel.
+#
+# The `tinyland-nix` runner image (ghcr.io/tinyland-inc/actions-runner-nix)
+# bakes in git, curl, jq, xz-utils, ca-certificates, Determinate Nix, and the
+# runner-bundled Node 24 on PATH. It deliberately does NOT expose `npm`/`npx`
+# on PATH, so the `actions/setup-node` step below is load-bearing here rather
+# than merely a version pin: it is what puts `npm` on PATH for the `npm run`
+# steps. There is no sudo/apt on this image; setup-node needs none (it extracts
+# into the runner tool cache).
+
 on:
   pull_request:
   push:
@@ -7,9 +21,12 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: tinyland-nix
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
