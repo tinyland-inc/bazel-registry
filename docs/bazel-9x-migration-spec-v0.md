@@ -87,7 +87,7 @@ this file, per the same contract Step A §4 states for `.bazelrc.flywheel`.
   which ones will eventually need republishing; minting them is separate work
   under the immutability rule (`scripts/check-immutable-versions.sh`).
 - **GloriousFlywheel does not move under this ticket.** Its bump proceeds under
-  its own contract, and the CI gate work (**TIN-2915**) lands first. Step B
+  its own contract, and GF's own merge-gate ticket lands first. Step B
   may describe GF's ordering constraints; it does not authorize GF's bump.
 - **The private tooling repo does not move under this ticket** either; it
   proceeds under its own contract.
@@ -221,13 +221,13 @@ remedy is a known version bump.
 
 | Module | In use | 9.x floor | Evidence |
 | --- | --- | --- | --- |
-| `aspect_rules_js` | 2.9.1 (both 8.x spokes, **all in-house modules**), 2.9.2 (GF) | **3.0.0** | 2.9.1 / 2.9.2 `['8.x','7.x','6.x']`; 3.0.0 `['7.x','8.x','9.x']`. Major-version bump. |
+| `aspect_rules_js` | 2.9.1 (both 8.x spokes, **all in-house modules**), 2.9.2 (GF) | **3.0.0** | 2.9.1 `['8.x','7.x','6.x']`; 2.9.2 `['rolling','8.x','7.x','6.x']`; 3.0.0 `['7.x','8.x','9.x']`. Major-version bump. |
 | `aspect_rules_ts` | 3.8.4 (spokes, in-house), 3.8.3 (GF) | **3.8.7** | 3.8.6 `['8.x','7.x']`; 3.8.7 `['9.x','8.x','7.x']`. Patch-level. |
 | `aspect_rules_swc` | 2.6.1 (both 8.x spokes) | **2.7.1** | 2.7.0 `['8.x','7.x']`; 2.7.1 `['9.x','8.x','7.x']`. Minor. |
 | `aspect_bazel_lib` → `bazel_lib` | 2.22.5 (both 8.x spokes, GF, **all in-house modules**) | **`bazel_lib` 3.7.1** | 2.22.4 / 2.22.5 `['7.x','8.x']` — below floor. The 3.x line is published under a **different module name**: `bazel_lib` 3.0.0–3.5.0 `['7.x','8.x','rolling']`, 3.6.0 / 3.7.0 `['7.x','8.x','9.0.0','rolling']`, **3.7.1 `['7.x','8.x','9.x','rolling']`**. 3.6.0 is the earliest with any 9 entry, but it pins 9.0.0 exactly; 3.7.1 is the first covering the 9.x line the estate targets. Both modules' `metadata.json` point at the same upstream repo, and `bazel_lib` 3.0.0 declares `name = "bazel_lib"` at `compatibility_level = 1`. **This is a `bazel_dep` rename, not a version bump.** |
 | `bazel_skylib` | 1.8.2 (spokes, GF, in-house), 1.9.2 (tooling repo) | **1.9.2** | 1.8.1 / 1.8.2 / 1.9.0 `['8.x','7.x','6.x']`; 1.9.2 `['9.x','8.x','7.x']`. Tooling repo already met. |
 | `platforms` | 1.0.0 (spokes, in-house), 0.0.10 (GF), 1.1.0 (tooling repo) | **1.1.0** | 0.0.10 `['7.x','6.x']`; 0.0.11 / 1.0.0 `['8.x','7.x','6.x']`; 1.1.0 `['9.x','8.x','7.x','6.x']`. Tooling repo already met. |
-| `rules_python` | 1.4.1 (GF), 2.2.0 (tooling repo) | **1.8.0** | 1.4.1 / 1.6.1 / 1.6.3 `['7.x']`; 1.7.0 `['7.x','8.x']`; **1.8.0 `['7.*','8.*','9.*']`**. A minor bump inside the 1.x line — GF does **not** need a major-version move. Tooling repo already past it. |
+| `rules_python` | 1.4.1 (GF), 2.2.0 (tooling repo) | **1.8.0** | 1.4.1 / 1.6.1 / 1.6.3 `[7.x, last_rc]`; 1.7.0 `['7.x','8.x']`; **1.8.0 `['7.*','8.*','9.*']`**. A minor bump inside the 1.x line — GF does **not** need a major-version move. Tooling repo already past it. |
 
 **Class B — floor already met.** No action.
 
@@ -271,7 +271,8 @@ This is the finding that puts Step B in *this* repo rather than in a spoke.
 The four modules both 8.x spokes depend on — `tummycrypt_tinyland_color_utils`,
 `tummycrypt_vite_plugin_a11y`, `tummycrypt_vite_plugin_skeleton_colors`,
 `tummycrypt_tinyvectors` — every published version pins, in its own
-`MODULE.bazel`:
+`MODULE.bazel` (`tummycrypt_tinyvectors` omits `aspect_rules_ts`; the other
+five lines hold for it too):
 
 ```
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")   # below floor + renamed at 3.x
@@ -398,10 +399,11 @@ autoloading no longer papers over a missing load.
 - **`--experimental_worker_for_repo_fetching` is removed.**
 - **New `--repo_contents_cache`**, defaulting to a `contents` directory under
   `--repository_cache`. GF sets a durable per-machine `--repository_cache` for
-  developers and explicitly neutralises it on CI with
-  `build:ci --repository_cache=`. Under 9 that neutralisation now also disables
-  the repo-contents cache; the CI lane is correspondingly colder on repository
-  fetches. Deliberate, but re-measure.
+  developers and neutralises it in its rc with `build:ci --repository_cache=`,
+  but its CI lanes override that neutralisation with an explicit
+  `--repository_cache` under `RUNNER_TEMP` on the command line. Under 9 the
+  repo-contents cache lands there too, with the same lifetime as the
+  repository cache has today. No change needed; re-measure only.
 - **`--experimental_check_external_repository_files` (default on)** now
   refetches a repository when it detects external modification.
 - **Canonical repo names created by `use_repo_rule` changed** to be more
@@ -416,7 +418,9 @@ autoloading no longer papers over a missing load.
 - **HTTP remote caches gained Zstd / Deflate / Snappy encoding**, and the
   Merkle-tree implementation behind remote caching/execution was reworked for
   "up to a 30% wall time and 70% peak heap reduction". Upside, but see §4 —
-  a reworked Merkle tree is precisely a cache-key-affecting change.
+  the note describes an implementation rework, and action and input-root
+  digests are defined by the REAPI wire encoding, so a performance rework need
+  not change keys; treat it as something that *may* affect them.
 
 ### 3.5 Python runtime configuration
 
@@ -494,9 +498,10 @@ the things that feed it:
 1. **Tool inputs.** The binaries and scripts Bazel injects from `@bazel_tools`
    (test setup and runner scripts, launchers, the `.bzl` files backing
    autoloaded rules) ship *with* Bazel. Their digests change with the release.
-2. **Command lines.** Flags that flipped by default (§3.5) change the argv of
+2. **Command lines.** Flags that flipped by default (§3.6) change the argv of
    the actions they affect.
-3. **The Merkle-tree computation itself was reworked in 9.0** (§3.4).
+3. **The Merkle-tree computation itself was reworked in 9.0** (§3.4) —
+   a *may*, not a *does*; items 1–2 alone carry the conclusion.
 
 Net effect: a Bazel major bump does not partially warm a cache — it moves the
 repo into a **disjoint key space**. Nothing is corrupted; nothing is shared.
@@ -604,7 +609,7 @@ Each step lists its gate, its rollback, and why it sits where it does.
 | 4 | `greatfallstoolbus.org` | step 3 green | revert `.bazelversion` + lock commit |
 | 5 | the private sibling spoke | step 4 green | revert `.bazelversion` + lock commit |
 | 6 | the private tooling repo (**writes cache**) | steps 3–5 green | revert `.bazelversion` + lock commit |
-| 7 | `GloriousFlywheel` (substrate) | **TIN-2915 CI gate first**; TIN-2299 boundary | revert `.bazelversion` + lock + restore `WORKSPACE.bazel` |
+| 7 | `GloriousFlywheel` (substrate) | **GF's own merge-gate ticket first**; TIN-2299 boundary | revert `.bazelversion` + lock + restore `WORKSPACE.bazel` |
 | 8 | remote worker fleet | out of scope here — see below | owned elsewhere |
 
 **Step 0 — pre-flight, costs nothing, unblocks everything.** Four actions, all
@@ -659,8 +664,8 @@ same change.
 **Step 7 — GloriousFlywheel, last.** Two independent reasons, neither about
 difficulty:
 
-1. **Contract.** GF's bump proceeds under its own contract, with the
-   **TIN-2915** CI gate landing first, and the **TIN-2299** boundary means this
+1. **Contract.** GF's bump proceeds under its own contract, with GF's own
+   merge-gate ticket landing first, and the **TIN-2299** boundary means this
    spec does not authorize it (§ Non-goals). Step B can only say where it sits.
 2. **Blast radius.** It is two majors back (7.4.0 → 9.2.0), the only repo with
    a lockfile at v11, the only one with a `WORKSPACE.bazel` to delete, the only
@@ -760,10 +765,11 @@ own rc first: some estate repos deliberately disable local fallback so that a
 remote-cache outage surfaces as a red build. A cache-config run failing on
 reachability is then the configured behaviour, not a 9.x regression.
 
-**Cross-cutting, once more than one repo has moved:** re-run
-`cache-contract-strict` in an *unmigrated* repo. §4.2 predicts its hit rate
-holds while §4.3's writer lane is still on 8.2.1; if it collapses early, the
-ordering assumption is wrong and step 6 should be reconsidered before it runs.
+**Cross-cutting, once any writer lane has moved (§4.3):** re-run
+`cache-contract-strict` in an *unmigrated* repo. §4.4 predicts the hit rate
+there is set by whichever writers still populate the old namespace; if it
+collapses earlier than the writer order predicts, the ordering assumption is
+wrong and step 6 should be reconsidered before it runs.
 
 ## 7. `scaffold-doctor` conformance extension
 
