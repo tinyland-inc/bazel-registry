@@ -28,16 +28,6 @@ the README's "Docs" section as a trivial follow-up:
   by itself.
 ```
 
-The same follow-up should correct the tail of Step A's own README bullet, which
-currently says Step B is "tracked in its own repos' issues (TIN-3858 /
-TIN-3859)". Step B is this document, authored here under **TIN-3897**; suggested
-replacement for that sentence:
-
-```markdown
-  Step B (Bazel 9.x migration) is specified separately in
-  `docs/bazel-9x-migration-spec-v0.md` (TIN-3897).
-```
-
 ## Naming and redaction
 
 This registry is a **public** repo. Estate repos are named here only where the
@@ -126,7 +116,11 @@ Step A §1 requires.
 
 ### 2.1 Version, module system, lockfile
 
-All rows read directly from each repo's working tree at authoring time.
+Rows for `GloriousFlywheel` are read from its `origin/main` at commit
+`37499213cb5cafeb7b11d6816f1b810064c36b08`; a local working tree is not a
+citable source for another repo's state. Remaining rows are read from each
+repo's checked-out default branch at authoring time. Re-read GF at its current
+`origin/main` before acting on any GF row — it moves faster than this document.
 
 | Repo | `.bazelversion` | Module system | `lockFileVersion` | Registry pin |
 | --- | --- | --- | --- | --- |
@@ -134,18 +128,19 @@ All rows read directly from each repo's working tree at authoring time.
 | `tinyland-inc/site.scaffold` (template spoke) | 8.2.1 | Bzlmod only; no `WORKSPACE*` file | 18 | exact 40-char SHA |
 | the private sibling spoke | 8.2.1 (per Step A §1) | Bzlmod | not read here | exact 40-char SHA (origin of the convention, Step A §3) |
 | the private tooling repo | 7.6.0 | Bzlmod only; no `WORKSPACE*` file | 13 | BCR only (no in-house registry lane) |
-| `GloriousFlywheel` (cache substrate) | 7.4.0 | Bzlmod **plus** a vestigial 7-line `WORKSPACE.bazel` | 11 | BCR only |
+| `GloriousFlywheel` (cache substrate) | 7.4.1 | Bzlmod **plus** a vestigial 7-line `WORKSPACE.bazel` | 11 | BCR only |
 | `tinyland-inc/bazel-registry` (this repo) | 8.1.1 on `main`; 8.2.1 after Step A | **not a Bazel workspace** — no `MODULE.bazel`, `WORKSPACE`, `BUILD`, or `.bazelrc` | n/a | n/a |
 
 Two things this table settles:
 
 - **GloriousFlywheel is the furthest behind and the most exposed.** It is two
-  major versions back (7.4.0), it is the only estate repo still carrying a
-  `WORKSPACE.bazel`, and it is the shared cache substrate. Its 7.4.0 pin is
-  also load-bearing in its own `.bazelrc`, which documents a 7.4.0-specific
-  `disk_cache` GC defect (bazelbuild/bazel#24098) as the reason a du-triggered
-  prune backstop exists. That comment must be re-evaluated, not blindly
-  carried, when GF moves.
+  major versions back (7.4.1), it is the only estate repo still carrying a
+  `WORKSPACE.bazel`, and it is the shared cache substrate. Its 7.4.x pin is
+  also load-bearing in its own `.bazelrc`, which cites a `disk_cache` GC defect
+  (bazelbuild/bazel#24098) as the reason a du-triggered prune backstop exists.
+  That comment names Bazel **7.4.0** while the repo now pins 7.4.1, so it is
+  already mildly stale; it must be re-evaluated, not blindly carried, when GF
+  moves.
 - **The registry's own `.bazelversion` is inert for direct invocation and binds
   only by copy** — see Step A §1 for the mechanism. That makes this repo the
   cheapest possible place to prove a new Bazel version: flipping the value here
@@ -163,7 +158,7 @@ other rows are read from the estate repos' committed lockfiles.
 
 | Bazel | `lockFileVersion` | Source |
 | --- | --- | --- |
-| 7.4.0 | 11 | committed lockfile, `GloriousFlywheel` |
+| 7.4.1 | 11 | committed lockfile, `GloriousFlywheel` |
 | 7.6.0 | 13 | committed lockfile, the private tooling repo |
 | 8.2.1 | 18 | committed lockfiles, both 8.x spokes; also reproduced in a scratch workspace |
 | **9.2.0** | **28** | **measured** — `bazelisk mod graph` in a scratch workspace |
@@ -210,7 +205,7 @@ This signal has a **known false-negative rate, and it is not small**. A
 presubmit matrix records what BCR was told to test at publication time; it is
 not a compatibility declaration and it goes stale. The clearest proof is in
 this very table: `rules_nixpkgs_core` declares `["6.x"]` only, yet both
-Nix-integrated estate repos run it on 7.4.0 and 7.6.0 in daily use. `rules_pkg`
+Nix-integrated estate repos run it on 7.4.1 and 7.6.0 in daily use. `rules_pkg`
 is similar in shape — its matrix *narrowed* from `[7.x, 8.x]` at 1.1.0 to
 `[8.x]` at 1.2.0/1.3.0. **A missing 9.x entry is a prompt to test, not a
 finding of incompatibility.** Rows below are therefore split into two classes,
@@ -222,23 +217,23 @@ remedy is a known version bump.
 | Module | In use | 9.x floor | Evidence |
 | --- | --- | --- | --- |
 | `aspect_rules_js` | 2.9.1 (both 8.x spokes, **all in-house modules**), 2.9.2 (GF) | **3.0.0** | 2.9.1 `['8.x','7.x','6.x']`; 2.9.2 `['rolling','8.x','7.x','6.x']`; 3.0.0 `['7.x','8.x','9.x']`. Major-version bump. |
-| `aspect_rules_ts` | 3.8.4 (spokes, in-house), 3.8.3 (GF) | **3.8.7** | 3.8.6 `['8.x','7.x']`; 3.8.7 `['9.x','8.x','7.x']`. Patch-level. |
+| `aspect_rules_ts` | 3.8.4 (both 8.x spokes, 3 of 4 in-house modules) | **3.8.7** | 3.8.6 `['8.x','7.x']`; 3.8.7 `['9.x','8.x','7.x']`. Patch-level. GF is already past it at 3.10.0 — but note 3.10.0's matrix is `['9.0.1','8.x','7.x']`, which pins 9.0.1 exactly rather than the 9.x line; see the `bazel_lib` row for the same nuance. |
 | `aspect_rules_swc` | 2.6.1 (both 8.x spokes) | **2.7.1** | 2.7.0 `['8.x','7.x']`; 2.7.1 `['9.x','8.x','7.x']`. Minor. |
-| `aspect_bazel_lib` → `bazel_lib` | 2.22.5 (both 8.x spokes, GF, **all in-house modules**) | **`bazel_lib` 3.7.1** | 2.22.4 / 2.22.5 `['7.x','8.x']` — below floor. The 3.x line is published under a **different module name**: `bazel_lib` 3.0.0–3.5.0 `['7.x','8.x','rolling']`, 3.6.0 / 3.7.0 `['7.x','8.x','9.0.0','rolling']`, **3.7.1 `['7.x','8.x','9.x','rolling']`**. 3.6.0 is the earliest with any 9 entry, but it pins 9.0.0 exactly; 3.7.1 is the first covering the 9.x line the estate targets. Both modules' `metadata.json` point at the same upstream repo, and `bazel_lib` 3.0.0 declares `name = "bazel_lib"` at `compatibility_level = 1`. **This is a `bazel_dep` rename, not a version bump.** |
-| `bazel_skylib` | 1.8.2 (spokes, GF, in-house), 1.9.2 (tooling repo) | **1.9.2** | 1.8.1 / 1.8.2 / 1.9.0 `['8.x','7.x','6.x']`; 1.9.2 `['9.x','8.x','7.x']`. Tooling repo already met. |
-| `platforms` | 1.0.0 (spokes, in-house), 0.0.10 (GF), 1.1.0 (tooling repo) | **1.1.0** | 0.0.10 `['7.x','6.x']`; 0.0.11 / 1.0.0 `['8.x','7.x','6.x']`; 1.1.0 `['9.x','8.x','7.x','6.x']`. Tooling repo already met. |
+| `aspect_bazel_lib` → `bazel_lib` | 2.22.5 (both 8.x spokes, GF, **all in-house modules**) | **`bazel_lib` 3.7.1** | 2.22.4 / 2.22.5 `['7.x','8.x']` — below floor. The 3.x line is published under a **different module name**: `bazel_lib` 3.0.0–3.5.0 carry no 9 entry (and are not uniform among themselves — 3.0.0 and 3.5.0 list `rolling`, 3.0.1 does not), 3.6.0 / 3.7.0 add `9.0.0`, and **3.7.1 lists `9.x`**. 3.6.0 is the earliest with any 9 entry, but it pins 9.0.0 exactly; 3.7.1 is the first covering the 9.x line the estate targets. Both modules' `metadata.json` point at the same upstream repo, and `bazel_lib` 3.0.0 declares `name = "bazel_lib"` at `compatibility_level = 1`. **This is a `bazel_dep` rename, not a version bump.** |
+| `bazel_skylib` | 1.8.2 (both 8.x spokes, **all in-house modules**) | **1.9.2** | 1.8.1 / 1.8.2 / 1.9.0 `['8.x','7.x','6.x']`; 1.9.2 `['9.x','8.x','7.x']`. GF and the tooling repo are both already at 1.9.2. |
+| `platforms` | 1.0.0 (both 8.x spokes, **all in-house modules**), 0.0.10 (GF), 1.1.0 (tooling repo) | **1.1.0** | 0.0.10 `['7.x','6.x']`; 0.0.11 / 1.0.0 `['8.x','7.x','6.x']`; 1.1.0 `['9.x','8.x','7.x','6.x']`. Tooling repo already met. |
 | `rules_python` | 1.4.1 (GF), 2.2.0 (tooling repo) | **1.8.0** | 1.4.1 / 1.6.1 / 1.6.3 `[7.x, last_rc]`; 1.7.0 `['7.x','8.x']`; **1.8.0 `['7.*','8.*','9.*']`**. A minor bump inside the 1.x line — GF does **not** need a major-version move. Tooling repo already past it. |
 
 **Class B — floor already met.** No action.
 
 | Module | In use | Evidence |
 | --- | --- | --- |
-| `rules_cc` | 0.2.18 (GF), 0.2.22 (tooling repo) | both `['7.x','8.x','9.x']` |
-| `rules_nodejs` | 6.7.3 (all JS consumers + all in-house modules) | `['7.x','8.x','9.*']` |
-| `rules_rust` | 0.70.0 (GF) | `['7.x','8.x','9.x']` |
-| `rules_go` | 0.60.0 (GF), 0.62.0 (tooling repo) | both `['7.*','8.*','9.*']` |
+| `rules_cc` | 0.2.19 (GF), 0.2.22 (tooling repo) | both `['7.x','8.x','9.x']` |
+| `rules_nodejs` | 6.7.3 (both 8.x spokes + all in-house modules), 6.7.5 (GF) | 6.7.3 `['7.x','8.x','9.*']`; 6.7.5 `['7.x','8.x','9.x']` |
+| `rules_rust` | 0.73.0 (GF) | `['7.x','8.x','9.x']` |
+| `rules_go` | 0.63.0 (GF), 0.62.0 (tooling repo) | both `['7.*','8.*','9.*']` |
 | `gazelle` | 0.52.2 (tooling repo) | `['7.*','8.*','9.*']` |
-| `rules_img` | 0.3.4 (GF) | `['7.x','8.x','9.*']` |
+| `rules_img` | 0.3.19 (GF) | `['7.x','8.x','9.*']` |
 | `buildifier_prebuilt` | 8.5.1.2 (in-house `rules_tectonic`, dev-only) | `['7.x','8.x','9.x']` |
 | `stardoc` | 0.8.1 (in-house `rules_tectonic`, dev-only) | `['9.x','8.x','7.x']` |
 
@@ -249,7 +244,7 @@ a missing entry is not evidence of breakage.
 | Module | In use | Latest published matrix |
 | --- | --- | --- |
 | `rules_pkg` | 1.1.0 (spokes), 1.2.0 (GF), 1.3.0 (tooling repo) | 1.1.0 `['7.x','8.x']`; 1.2.0 / 1.3.0 `['8.x']` — matrix *narrowed* over time |
-| `rules_shell` | 0.6.0 (GF), 0.8.0 (tooling repo, in-house `rules_tectonic` dev-only) | 0.6.0 / 0.8.0 `['6.x','7.x','8.x']` |
+| `rules_shell` | 0.8.0 (GF, tooling repo, and in-house `rules_tectonic` dev-only) | 0.8.0 `['6.x','7.x','8.x']` |
 | `rules_oci` | 2.3.0 (tooling repo) | `['7.x']` |
 | `rules_nixpkgs_core` | 0.13.0 (GF **and** tooling repo) | 0.12.0 / 0.13.0 `['6.x']` — demonstrably stale; in daily use on 7.x |
 
@@ -370,12 +365,12 @@ and
 <https://github.com/bazelbuild/bazel/releases/tag/9.0.0>; background in
 <https://github.com/bazelbuild/bazel/issues/23043>.)
 
-Bindings: `GloriousFlywheel` depends on `rules_cc` 0.2.18 and sets
+Bindings: `GloriousFlywheel` depends on `rules_cc` 0.2.19 and sets
 `build --incompatible_enable_cc_toolchain_resolution`, with a `MODULE.bazel`
 comment explaining that Bazel auto-detects a system `cc` toolchain under that
 flag while `rules_cc` supplies the rule definitions. That split is exactly what
 9 formalises, so GF's posture is already correct in shape. **Both `rules_cc`
-versions in the estate (0.2.18 and 0.2.22) are already 9.x-tested** (§2.3
+versions in the estate (0.2.19 and 0.2.22) are already 9.x-tested** (§2.3
 Class B), so no dependency bump is required here. What remains is source-level:
 every `.bzl` load of a C++ rule must now come from `@rules_cc`, because
 autoloading no longer papers over a missing load.
@@ -560,7 +555,7 @@ that assumes a single writer is wrong.
 
 **The baseline is not what "converge on 8.2.1 first" suggests.** After Step A
 the two spokes *read* on 8.2.1, but no cache-writing lane in the estate runs
-8.2.1: the substrate repo is on 7.4.0 and the private tooling repo on 7.6.0.
+8.2.1: the substrate repo is on 7.4.1 and the private tooling repo on 7.6.0.
 So the 8.2.1 key space is populated only by whatever spoke lanes have upload
 enabled — the spokes are largely reading a namespace that little else fills.
 Two consequences:
@@ -667,14 +662,14 @@ difficulty:
 1. **Contract.** GF's bump proceeds under its own contract, with GF's own
    merge-gate ticket landing first, and the **TIN-2299** boundary means this
    spec does not authorize it (§ Non-goals). Step B can only say where it sits.
-2. **Blast radius.** It is two majors back (7.4.0 → 9.2.0), the only repo with
+2. **Blast radius.** It is two majors back (7.4.1 → 9.2.0), the only repo with
    a lockfile at v11, the only one with a `WORKSPACE.bazel` to delete, the only
    one that fails closed on a stale lock (§2.2), the one needing the
    `rules_python` bump to ≥1.8.0 (§2.3, §3.5), and the substrate everything
    else caches against.
 
 GF's rollback additionally has to restore `WORKSPACE.bazel` and re-check the
-7.4.0-specific `disk_cache` GC workaround its `.bazelrc` documents (§2.1) —
+7.4.x-specific `disk_cache` GC workaround its `.bazelrc` documents (§2.1) —
 that comment either becomes obsolete under 9 or does not, and the answer should
 be recorded in the bump, not rediscovered in the revert.
 
@@ -918,7 +913,7 @@ Carry these into the Step B execution issue; none is resolved by this document.
 5. **Worker-fleet sequencing** (§5 step 8) — confirm whether worker-produced
    action-cache entries dominate consumer hit rates. If they do, the fleet must
    be sequenced explicitly.
-6. **GF's 7.4.0 `disk_cache` GC workaround** (§2.1) — obsolete under 9 or not.
+6. **GF's 7.4.x `disk_cache` GC workaround** (§2.1) — obsolete under 9 or not.
 7. **Executor eligibility under the new test-toolchain default** (§3.6) —
    re-prove the eligibility manifest's assumptions before any executor-backed
    lane moves.
