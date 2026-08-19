@@ -7,5 +7,8 @@
     "validate": "node scripts/validate-registry.mjs",
     "smoke:resolve": "node scripts/smoke-active-registry.mjs",
     "smoke:stage1-consumer": "node scripts/smoke-stage1-consumer-targets.mjs"
+  },
+  "bazelEstate": {
+    "version": "8.2.1"
   }
 }
