@@ -29,6 +29,23 @@ jobs:
     runs-on: tinyland-nix
     steps:
       - uses: actions/checkout@v4
+      - name: Mint Tinyland registry source token
+        id: tinyland-registry-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
+        with:
+          app-id: ${{ secrets.TINYLAND_REGISTRY_APP_ID }}
+          private-key: ${{ secrets.TINYLAND_REGISTRY_APP_KEY }}
+          owner: tinyland-inc
+          repositories: |-
+            scheduling-bridge
+            tinyland-file-logger
+            tinyland-publishing-hooks
+            tinyland-scheduled-publishing
+            tinyland-schemas
+            tinyland-server-config
+            tinyland-server-utils
+            tinyland-tracing-middleware
+          permission-contents: read
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -42,14 +59,14 @@ jobs:
       - name: Resolve aggregate active-module graph
         run: npm run smoke:resolve
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Build Stage 1 aggregate consumer targets
         run: npm run smoke:stage1-consumer
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Build isolated scheduling-kit consumer
         run: npm run smoke:scheduling-kit-only
       - name: Build isolated scheduling-bridge consumer
         run: npm run smoke:scheduling-bridge-only
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
