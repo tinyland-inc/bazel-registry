@@ -6,7 +6,9 @@
   "scripts": {
     "validate": "node scripts/validate-registry.mjs",
     "smoke:resolve": "node scripts/smoke-active-registry.mjs",
-    "smoke:stage1-consumer": "node scripts/smoke-stage1-consumer-targets.mjs"
+    "smoke:stage1-consumer": "node scripts/smoke-stage1-consumer-targets.mjs",
+    "smoke:scheduling-kit-only": "node scripts/smoke-stage1-consumer-targets.mjs --scenario=scheduling-kit-only",
+    "smoke:scheduling-bridge-only": "node scripts/smoke-stage1-consumer-targets.mjs --scenario=scheduling-bridge-only"
   },
   "bazelEstate": {
     "version": "8.2.1"

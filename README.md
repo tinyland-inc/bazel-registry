@@ -72,10 +72,21 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
 - `scripts/check-immutable-versions.sh` — rejects edits to already-shipped
   module version directories (immutability gate).
 - `npm run smoke:resolve` / `npm run smoke:stage1-consumer` — network and
-  GitHub-token dependent; actually exercise `.bazelversion` and this
-  registry's module metadata through real `bazel mod graph` /
-  `bazel build` runs in a throwaway workspace. Required CI steps in
-  `.github/workflows/validate.yml`.
+  GitHub-token dependent; exercise `.bazelversion` and this registry's module
+  metadata through real `bazel mod graph` / `bazel build` runs in throwaway
+  workspaces.
+- `npm run smoke:scheduling-kit-only` / `npm run
+  smoke:scheduling-bridge-only` — isolated one-direct-dependency consumers.
+  Each resolves the selected graph and builds only that module's `//:pkg`, so
+  an aggregate root dependency cannot raise and mask scheduling-bridge's
+  declared scheduling-kit edge. The bridge proof reads the latest active
+  published bridge version and its declared kit version directly from registry
+  metadata; it does not invent an unpublished successor.
+
+All four smokes are required GF/self-hosted CI steps in
+`.github/workflows/validate.yml`. The aggregate, Stage 1, and bridge lanes fail
+closed when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent; a missing private-archive
+credential is never reported as a successful skip.
 
 ## Docs
 

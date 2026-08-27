@@ -37,11 +37,19 @@ jobs:
           bazelisk-cache: true
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
-      - run: npm run validate
-      - run: npm run smoke:resolve
+      - name: Validate static registry contracts
+        run: npm run validate
+      - name: Resolve aggregate active-module graph
+        run: npm run smoke:resolve
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
-      - run: npm run smoke:stage1-consumer
+      - name: Build Stage 1 aggregate consumer targets
+        run: npm run smoke:stage1-consumer
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Build isolated scheduling-kit consumer
+        run: npm run smoke:scheduling-kit-only
+      - name: Build isolated scheduling-bridge consumer
+        run: npm run smoke:scheduling-bridge-only
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
