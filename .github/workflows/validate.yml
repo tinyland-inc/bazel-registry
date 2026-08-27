@@ -65,14 +65,18 @@ jobs:
           });
           if (!api.ok) throw new Error(`registry source metadata read returned ${api.status}`);
 
-          const login = ['x', 'access', 'token'].join('-');
-          const basic = Buffer.from(`${login}:${token}`, 'utf8').toString('base64');
           const archive = await fetch(
             'https://github.com/tinyland-inc/scheduling-bridge/archive/refs/tags/v0.7.1.tar.gz',
-            { headers: { Authorization: `Basic ${basic}` }, redirect: 'manual' },
+            { headers: { Authorization: `token ${token}` }, redirect: 'manual' },
           );
           if (![301, 302, 303, 307, 308].includes(archive.status)) {
-            throw new Error(`registry source archive read returned ${archive.status}`);
+            const apiArchive = await fetch(
+              'https://api.github.com/repos/tinyland-inc/scheduling-bridge/tarball/v0.7.1',
+              { headers: { Authorization: `Bearer ${token}` }, redirect: 'manual' },
+            );
+            throw new Error(
+              `browser archive returned ${archive.status}; API tarball returned ${apiArchive.status}`,
+            );
           }
           console.log('Private scheduling-bridge metadata and archive redirect are readable.');
           NODE

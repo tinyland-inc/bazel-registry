@@ -69,11 +69,9 @@ function writeGitHubCredentialHelper(smokeDir) {
 		`#!/usr/bin/env node
 const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 if (!token) process.exit(1);
-const login = ['x', 'access', 'token'].join('-');
-const basic = Buffer.from(\`\${login}:\${token}\`, 'utf8').toString('base64');
 process.stdout.write(JSON.stringify({
   headers: {
-    Authorization: [\`Basic \${basic}\`],
+    Authorization: [\`token \${token}\`],
     Accept: ['application/vnd.github+json'],
   },
 }));
