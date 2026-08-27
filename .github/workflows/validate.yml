@@ -49,6 +49,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Verify private source token scope
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+        run: |-
+          node --input-type=module <<'NODE'
+          const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN;
+          if (!token) throw new Error('registry source token is missing');
+
+          const api = await fetch('https://api.github.com/repos/tinyland-inc/scheduling-bridge', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json',
+            },
+          });
+          if (!api.ok) throw new Error(`registry source metadata read returned ${api.status}`);
+
+          const login = ['x', 'access', 'token'].join('-');
+          const basic = Buffer.from(`${login}:${token}`, 'utf8').toString('base64');
+          const archive = await fetch(
+            'https://github.com/tinyland-inc/scheduling-bridge/archive/refs/tags/v0.7.1.tar.gz',
+            { headers: { Authorization: `Basic ${basic}` }, redirect: 'manual' },
+          );
+          if (![301, 302, 303, 307, 308].includes(archive.status)) {
+            throw new Error(`registry source archive read returned ${archive.status}`);
+          }
+          console.log('Private scheduling-bridge metadata and archive redirect are readable.');
+          NODE
       - uses: bazel-contrib/setup-bazel@8cb04a772ab4c1eb984e9c1b493a182e96c5e425
         with:
           bazelisk-cache: true
