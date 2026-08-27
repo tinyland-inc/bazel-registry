@@ -138,7 +138,7 @@ const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN || process.env.GH_TOKEN
 if (!token) process.exit(1);
 process.stdout.write(JSON.stringify({
   headers: {
-    Authorization: [\`token \${token}\`],
+    Authorization: [\`Bearer \${token}\`],
     Accept: ['application/vnd.github+json'],
   },
 }));
@@ -146,7 +146,10 @@ process.stdout.write(JSON.stringify({
 		{ mode: 0o700 },
 	);
 
-	return [`--credential_helper=github.com=${helperPath}`];
+	return [
+		`--credential_helper=api.github.com=${helperPath}`,
+		`--credential_helper=github.com=${helperPath}`,
+	];
 }
 
 function resolveBazelCommand() {

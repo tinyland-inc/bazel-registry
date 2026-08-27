@@ -38,6 +38,7 @@ jobs:
           owner: tinyland-inc
           repositories: |-
             scheduling-bridge
+            tempo-store
             tinyland-file-logger
             tinyland-publishing-hooks
             tinyland-scheduled-publishing
@@ -66,19 +67,19 @@ jobs:
           if (!api.ok) throw new Error(`registry source metadata read returned ${api.status}`);
 
           const archive = await fetch(
-            'https://github.com/tinyland-inc/scheduling-bridge/archive/refs/tags/v0.7.1.tar.gz',
-            { headers: { Authorization: `token ${token}` }, redirect: 'manual' },
+            'https://api.github.com/repos/tinyland-inc/scheduling-bridge/tarball/v0.7.1',
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github+json',
+              },
+              redirect: 'manual',
+            },
           );
           if (![301, 302, 303, 307, 308].includes(archive.status)) {
-            const apiArchive = await fetch(
-              'https://api.github.com/repos/tinyland-inc/scheduling-bridge/tarball/v0.7.1',
-              { headers: { Authorization: `Bearer ${token}` }, redirect: 'manual' },
-            );
-            throw new Error(
-              `browser archive returned ${archive.status}; API tarball returned ${apiArchive.status}`,
-            );
+            throw new Error(`API tarball returned ${archive.status}; expected an authenticated redirect`);
           }
-          console.log('Private scheduling-bridge metadata and archive redirect are readable.');
+          console.log('Private scheduling-bridge metadata and API tarball redirect are readable.');
           NODE
       - uses: bazel-contrib/setup-bazel@8cb04a772ab4c1eb984e9c1b493a182e96c5e425
         with:
@@ -87,6 +88,8 @@ jobs:
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Validate static registry contracts
         run: npm run validate
+      - name: Build isolated scheduling-kit consumer
+        run: npm run smoke:scheduling-kit-only
       - name: Resolve aggregate active-module graph
         run: npm run smoke:resolve
         env:
@@ -95,8 +98,6 @@ jobs:
         run: npm run smoke:stage1-consumer
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Build isolated scheduling-kit consumer
-        run: npm run smoke:scheduling-kit-only
       - name: Build isolated scheduling-bridge consumer
         run: npm run smoke:scheduling-bridge-only
         env:
