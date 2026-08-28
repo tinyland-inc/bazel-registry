@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { resolveGfBazel } from './gf-bazel-frontdoor.mjs';
 
 const root = process.cwd();
 
@@ -164,25 +165,12 @@ process.stdout.write(JSON.stringify({
 	];
 }
 
-function resolveBazelCommand() {
-	for (const command of ['bazelisk', 'bazel']) {
-		const probe = spawnSync(command, ['version'], {
-			cwd: root,
-			stdio: 'ignore',
-		});
-		if (!probe.error && probe.status === 0) {
-			return { command, prefixArgs: [] };
-		}
-	}
-
-	return { command: 'npx', prefixArgs: ['--yes', '@bazel/bazelisk'] };
-}
 
 const smokeDir = fs.mkdtempSync(path.join(os.tmpdir(), `${scenario.workspaceName}-`));
 let exitCode = 0;
 try {
 	const credentialHelperArgs = writeGitHubCredentialHelper(smokeDir);
-	const bazel = resolveBazelCommand();
+	const bazel = resolveGfBazel();
 	const moduleBazel = [
         `module(name = "${scenario.workspaceName}", version = "0.0.0")`,
         ...scenario.modules.map(
@@ -197,7 +185,6 @@ try {
         const graphResult = spawnSync(
             bazel.command,
             [
-                ...bazel.prefixArgs,
                 '--ignore_all_rc_files',
                 'mod',
                 'graph',
@@ -210,6 +197,7 @@ try {
                 '--lockfile_mode=off',
                 `--registry=file://${root}`,
                 '--registry=https://bcr.bazel.build',
+                ...bazel.remoteArgs,
             ],
             {
                 cwd: smokeDir,
@@ -248,7 +236,6 @@ try {
     const result = exitCode === 0 ? spawnSync(
         bazel.command,
         [
-            ...bazel.prefixArgs,
             '--ignore_all_rc_files',
             'build',
             ...scenario.targets,
@@ -257,6 +244,7 @@ try {
 			'--lockfile_mode=off',
 			`--registry=file://${root}`,
 			'--registry=https://bcr.bazel.build',
+			...bazel.remoteArgs,
 		],
 		{
 			cwd: smokeDir,

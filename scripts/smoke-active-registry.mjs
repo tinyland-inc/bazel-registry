@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { resolveGfBazel } from './gf-bazel-frontdoor.mjs';
 
 const root = process.cwd();
 const registry = JSON.parse(fs.readFileSync(path.join(root, 'bazel_registry.json'), 'utf8'));
@@ -84,24 +85,11 @@ process.stdout.write(JSON.stringify({
 	];
 }
 
-function resolveBazelCommand() {
-	for (const command of ['bazelisk', 'bazel']) {
-		const probe = spawnSync(command, ['version'], {
-			cwd: root,
-			stdio: 'ignore',
-		});
-		if (!probe.error && probe.status === 0) {
-			return { command, prefixArgs: [] };
-		}
-	}
-
-	return { command: 'npx', prefixArgs: ['--yes', '@bazel/bazelisk'] };
-}
 
 const smokeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tinyland-registry-smoke-'));
 try {
 	const credentialHelperArgs = writeGitHubCredentialHelper(smokeDir);
-	const bazel = resolveBazelCommand();
+	const bazel = resolveGfBazel();
 	const moduleBazel = [
 		'module(name = "tinyland_registry_smoke", version = "0.0.0")',
 		...modules.map(
@@ -115,12 +103,13 @@ try {
 	const result = spawnSync(
 		bazel.command,
 		[
-			...bazel.prefixArgs,
+			'--ignore_all_rc_files',
 			'mod',
 			'graph',
 			...credentialHelperArgs,
 			`--registry=file://${root}`,
 			'--registry=https://bcr.bazel.build',
+			...bazel.remoteArgs,
 		],
 		{
 			cwd: smokeDir,

@@ -44,11 +44,11 @@ two ways, both by copy:
    network at check time — see §5 for exactly what that check does and does
    not prove.
 
-`npm run validate` (`scripts/validate-registry.mjs`) asserts `.bazelversion`
-here matches the pin recorded in `package.json`'s `bazelEstate.version`,
-so a drift between the two is caught even when the network/GitHub-token
-dependent smoke scripts (`npm run smoke:resolve`,
-`npm run smoke:stage1-consumer`) are not run.
+`node scripts/validate-registry.mjs` asserts that `.bazelversion` is present
+and well formed. That file is the sole estate version pin in this registry;
+there is no package-manager manifest carrying a second copy. The network and
+GitHub-token dependent smoke scripts run only on the GF `tinyland-nix` lane
+through its immutable Bazelisk custody path and runtime cache attachment.
 
 ## 2. Two-registry chain
 
@@ -121,9 +121,9 @@ stale-but-self-consistent value; that is a known, accepted limit of an
 offline gate, not an oversight.
 
 This registry repo has no `just scaffold-doctor` recipe of its own (it is not
-a site.scaffold spoke); its own gate is `npm run validate` — which
-cross-checks `.bazelversion` against `package.json`'s `bazelEstate.version` —
-plus the immutability gate (`scripts/check-immutable-versions.sh`,
+a site.scaffold spoke); its own gate is the direct Node static validator plus
+the GF-only consumer smokes and the immutability gate
+(`scripts/check-immutable-versions.sh`,
 `.github/workflows/immutability-gate.yml`).
 
 ## Deferred: Step B (Bazel 9.x migration)

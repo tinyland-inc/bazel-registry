@@ -6,13 +6,10 @@ name: Validate registry
 # the GloriousFlywheel cache-fronted ARC pool (`tinyland-nix`), matching the
 # estate convention used by greatfallstoolbus.org and GloriousFlywheel.
 #
-# The `tinyland-nix` runner image (ghcr.io/tinyland-inc/actions-runner-nix)
-# bakes in git, curl, jq, xz-utils, ca-certificates, Determinate Nix, and the
-# runner-bundled Node 24 on PATH. It deliberately does NOT expose `npm`/`npx`
-# on PATH, so the `actions/setup-node` step below is load-bearing here rather
-# than merely a version pin: it is what puts `npm` on PATH for the `npm run`
-# steps. There is no sudo/apt on this image; setup-node needs none (it extracts
-# into the runner tool cache).
+# The `tinyland-nix` runner image supplies runner-bundled Node 24 and records
+# its immutable Bazelisk Nix-store path in `/etc/tinyland/ci-bazelisk-bin`.
+# Validation uses those two GF-owned facts directly, with no package-manager,
+# tool-bootstrap action, or GitHub Actions cache authority.
 
 on:
   pull_request:
@@ -27,8 +24,16 @@ permissions:
 jobs:
   validate:
     runs-on: tinyland-nix
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Mint Tinyland registry source token
         id: tinyland-registry-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
@@ -47,9 +52,29 @@ jobs:
             tinyland-server-utils
             tinyland-tracing-middleware
           permission-contents: read
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+      - name: Resolve GF cache authority
+        id: flywheel-setup
+        uses: tinyland-inc/ci-templates/.github/actions/nix-setup@d8d178c022a0f84853d53a2c8fe0fc90115f0949 # v3.1.0
+      - name: Require GF Bazel front door
+        env:
+          BAZEL_CACHE_REACHABLE: ${{ steps.flywheel-setup.outputs.bazel_cache_reachable }}
+        run: |-
+          set -euo pipefail
+          test "$BAZEL_CACHE_REACHABLE" = true
+          custody_file=/etc/tinyland/ci-bazelisk-bin
+          test -r "$custody_file"
+          bazelisk_bin="$(tr -d '\n' < "$custody_file")"
+          case "$bazelisk_bin" in
+            /nix/store/????????????????????????????????-bazelisk-1.25.0/bin/bazelisk) ;;
+            *) echo "::error::invalid GF Bazelisk custody path: $bazelisk_bin"; exit 65 ;;
+          esac
+          test -f "$bazelisk_bin"
+          test ! -L "$bazelisk_bin"
+          test -x "$bazelisk_bin"
+          test "$(stat -c '%u:%g' "$bazelisk_bin")" = "0:0"
+          test -z "$(find "$bazelisk_bin" -perm /022 -print -quit)"
+          node -e 'if (Number(process.versions.node.split(".")[0]) !== 24) process.exit(65)'
+          echo "TINYLAND_CI_BAZELISK_BIN=$bazelisk_bin" >> "$GITHUB_ENV"
       - name: Verify private source token scope
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
@@ -81,30 +106,25 @@ jobs:
           }
           console.log('Private scheduling-bridge metadata and API tarball redirect are readable.');
           NODE
-      - uses: bazel-contrib/setup-bazel@8cb04a772ab4c1eb984e9c1b493a182e96c5e425
-        with:
-          bazelisk-cache: true
-          repository-cache: true
-          cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Validate static registry contracts
-        run: npm run validate
+        run: node scripts/validate-registry.mjs
       - name: Build isolated scheduling-kit consumer
-        run: npm run smoke:scheduling-kit-only
+        run: node scripts/smoke-stage1-consumer-targets.mjs --scenario=scheduling-kit-only
       - name: Build isolated tempo-store consumer
-        run: npm run smoke:tempo-store-only
+        run: node scripts/smoke-stage1-consumer-targets.mjs --scenario=tempo-store-only
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Build isolated scheduling-bridge consumer
-        run: npm run smoke:scheduling-bridge-only
+        run: node scripts/smoke-stage1-consumer-targets.mjs --scenario=scheduling-bridge-only
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Audit aggregate active-module graph (legacy compatibility)
         continue-on-error: true
-        run: npm run smoke:resolve
+        run: node scripts/smoke-active-registry.mjs
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Audit Stage 1 aggregate consumer targets (legacy compatibility)
         continue-on-error: true
-        run: npm run smoke:stage1-consumer
+        run: node scripts/smoke-stage1-consumer-targets.mjs
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
