@@ -76,17 +76,19 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
   metadata through real `bazel mod graph` / `bazel build` runs in throwaway
   workspaces.
 - `npm run smoke:scheduling-kit-only` / `npm run
-  smoke:scheduling-bridge-only` — isolated one-direct-dependency consumers.
+  smoke:scheduling-bridge-only` / `npm run smoke:tempo-store-only` — isolated
+  one-direct-dependency consumers.
   Each resolves the selected graph and builds only that module's `//:pkg`, so
   an aggregate root dependency cannot raise and mask scheduling-bridge's
   declared scheduling-kit edge. The bridge proof reads the latest active
   published bridge version and its declared kit version directly from registry
   metadata; it does not invent an unpublished successor.
 
-All four smokes are required GF/self-hosted CI steps in
+All five smokes are required GF/self-hosted CI steps in
 `.github/workflows/validate.yml`. The aggregate, Stage 1, and bridge lanes fail
-closed when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent; a missing private-archive
-credential is never reported as a successful skip.
+closed when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent; the Tempo lane uses the
+same fail-closed private archive contract. A missing private-archive credential
+is never reported as a successful skip.
 
 ## Docs
 

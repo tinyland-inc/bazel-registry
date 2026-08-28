@@ -78,6 +78,18 @@ function schedulingBridgeScenario() {
     };
 }
 
+function tempoStoreScenario() {
+    const version = latestPublishedVersion('tinyland_tempo_store');
+    return {
+        key: 'tempo-store-only',
+        workspaceName: 'tinyland_registry_tempo_store_only_smoke',
+        modules: [{ moduleName: 'tinyland_tempo_store', version }],
+        targets: ['@tinyland_tempo_store//:pkg'],
+        requiresPrivateArchiveAuth: true,
+        successLabel: `Built isolated tempo-store consumer target (${version})`,
+    };
+}
+
 const scenarioFactories = {
     stage1: () => ({
         key: 'stage1',
@@ -101,6 +113,7 @@ const scenarioFactories = {
     }),
     'scheduling-kit-only': schedulingKitScenario,
     'scheduling-bridge-only': schedulingBridgeScenario,
+    'tempo-store-only': tempoStoreScenario,
 };
 
 const scenarioArgument = process.argv.find((argument) => argument.startsWith('--scenario='));

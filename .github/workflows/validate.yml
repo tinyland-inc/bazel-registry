@@ -90,6 +90,10 @@ jobs:
         run: npm run validate
       - name: Build isolated scheduling-kit consumer
         run: npm run smoke:scheduling-kit-only
+      - name: Build isolated tempo-store consumer
+        run: npm run smoke:tempo-store-only
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Resolve aggregate active-module graph
         run: npm run smoke:resolve
         env:
