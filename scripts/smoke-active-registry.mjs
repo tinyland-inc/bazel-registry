@@ -81,7 +81,6 @@ process.stdout.write(JSON.stringify({
 
 	return [
 		`--credential_helper=api.github.com=${helperPath}`,
-		`--credential_helper=github.com=${helperPath}`,
 	];
 }
 

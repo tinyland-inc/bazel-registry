@@ -84,11 +84,13 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
   published bridge version and its declared kit version directly from registry
   metadata; it does not invent an unpublished successor.
 
-All five smokes are required GF/self-hosted CI steps in
-`.github/workflows/validate.yml`. The aggregate, Stage 1, and bridge lanes fail
-closed when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent; the Tempo lane uses the
-same fail-closed private archive contract. A missing private-archive credential
-is never reported as a successful skip.
+The three isolated package smokes are required GF/self-hosted CI steps in
+`.github/workflows/validate.yml`. Bridge and Tempo consume commit-pinned private
+archives through GitHub's authenticated API tarball endpoint and fail closed
+when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent. The aggregate and Stage 1
+legacy-compatibility audits still run and report their failures, but they do not
+mask or block current package successors while immutable older private entries
+retain browser-archive URLs that GitHub App tokens cannot read.
 
 ## Docs
 

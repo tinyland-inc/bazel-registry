@@ -94,15 +94,17 @@ jobs:
         run: npm run smoke:tempo-store-only
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Resolve aggregate active-module graph
+      - name: Build isolated scheduling-bridge consumer
+        run: npm run smoke:scheduling-bridge-only
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+      - name: Audit aggregate active-module graph (legacy compatibility)
+        continue-on-error: true
         run: npm run smoke:resolve
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Build Stage 1 aggregate consumer targets
+      - name: Audit Stage 1 aggregate consumer targets (legacy compatibility)
+        continue-on-error: true
         run: npm run smoke:stage1-consumer
-        env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Build isolated scheduling-bridge consumer
-        run: npm run smoke:scheduling-bridge-only
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
