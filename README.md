@@ -23,8 +23,8 @@ drift.
 This repo is not a Bazel workspace, so running `bazelisk` at this root does
 not read this file. It is consumed exactly two ways, both by copy:
 
-1. The GF-only smoke scripts (`scripts/smoke-active-registry.mjs`,
-   `scripts/smoke-stage1-consumer-targets.mjs`) copy it verbatim into a
+1. The GF-only isolated consumer smoke
+   (`scripts/smoke-stage1-consumer-targets.mjs`) copies it verbatim into a
    generated temp smoke workspace before invoking `bazel mod graph` /
    `bazel build` through the runner-custodied Bazelisk binary.
 2. Spoke repos carry their own root `.bazelversion`. They converge it to this
@@ -67,18 +67,14 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
 - `node scripts/validate-registry.mjs` — pure static checks:
   every `source.json` has SRI integrity, no `tinyland.dev` tarball
   references, `metadata.json` and `MODULE.bazel` agree on name/version, and
-  `.bazelversion` matches the recorded estate pin. No network.
+  `.bazelversion` is present and well formed. No network.
 - `scripts/check-immutable-versions.sh` — rejects edits to already-shipped
   module version directories (immutability gate).
-- `node scripts/smoke-active-registry.mjs` /
-  `node scripts/smoke-stage1-consumer-targets.mjs` — GF-only, network and
-  GitHub-token dependent; exercise `.bazelversion` and this registry's module
-  metadata through real `bazel mod graph` / `bazel build` runs in throwaway
-  workspaces. They fail closed unless the `tinyland-nix` runner supplies its
-  immutable Bazelisk custody path and the runtime GF cache attachment.
 - `node scripts/smoke-stage1-consumer-targets.mjs
   --scenario=<scheduling-kit-only|scheduling-bridge-only|tempo-store-only>` —
-  isolated one-direct-dependency consumers.
+  three GF-only, one-direct-dependency consumers. They fail closed unless the
+  `tinyland-nix` runner supplies its immutable Bazelisk custody path and the
+  runtime GF cache attachment.
   Each resolves the selected graph and builds only that module's `//:pkg`, so
   an aggregate root dependency cannot raise and mask scheduling-bridge's
   declared scheduling-kit edge. The bridge proof reads the latest active
@@ -88,10 +84,8 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
 The three isolated package smokes are required GF/self-hosted CI steps in
 `.github/workflows/validate.yml`. Bridge and Tempo consume commit-pinned private
 archives through GitHub's authenticated API tarball endpoint and fail closed
-when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent. The aggregate and Stage 1
-legacy-compatibility audits still run and report their failures, but they do not
-mask or block current package successors while immutable older private entries
-retain browser-archive URLs that GitHub App tokens cannot read.
+when `TINYLAND_REGISTRY_GITHUB_TOKEN` is absent. Historical aggregate
+compatibility probes are not release authority and are not part of this lane.
 
 ## Docs
 

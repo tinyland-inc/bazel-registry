@@ -33,10 +33,10 @@ locate a workspace and will not read this file (falling through to whatever
 version it resolves on its own). `.bazelversion` here is consumed exactly
 two ways, both by copy:
 
-1. `scripts/smoke-active-registry.mjs` and
-   `scripts/smoke-stage1-consumer-targets.mjs` each copy this file verbatim
-   into a generated temp smoke workspace before invoking `bazel`/`bazelisk`
-   there — this is the only mechanism that makes the pin here binding.
+1. `scripts/smoke-stage1-consumer-targets.mjs` copies this file verbatim into
+   each generated isolated-consumer smoke workspace before invoking Bazel
+   through the GF-custodied Bazelisk binary — this is the only mechanism that
+   makes the pin here binding.
 2. Spoke repos carry their own root `.bazelversion` and converge it to this
    value by hand at the moment they re-pin this registry, recording the value
    they converged on next to that pin. The spoke-side `scaffold-doctor` SSOT
@@ -47,8 +47,9 @@ two ways, both by copy:
 `node scripts/validate-registry.mjs` asserts that `.bazelversion` is present
 and well formed. That file is the sole estate version pin in this registry;
 there is no package-manager manifest carrying a second copy. The network and
-GitHub-token dependent smoke scripts run only on the GF `tinyland-nix` lane
-through its immutable Bazelisk custody path and runtime cache attachment.
+GitHub-token dependent isolated-consumer smokes run only on the GF
+`tinyland-nix` lane through its immutable Bazelisk custody path and runtime
+cache attachment.
 
 ## 2. Two-registry chain
 
@@ -122,7 +123,7 @@ offline gate, not an oversight.
 
 This registry repo has no `just scaffold-doctor` recipe of its own (it is not
 a site.scaffold spoke); its own gate is the direct Node static validator plus
-the GF-only consumer smokes and the immutability gate
+the three GF-only isolated-consumer smokes and the immutability gate
 (`scripts/check-immutable-versions.sh`,
 `.github/workflows/immutability-gate.yml`).
 

@@ -92,36 +92,16 @@ function tempoStoreScenario() {
 }
 
 const scenarioFactories = {
-    stage1: () => ({
-        key: 'stage1',
-        workspaceName: 'tinyland_registry_stage1_consumer_smoke',
-        modules: [
-            { moduleName: 'tummycrypt_tinyland_auth', version: '0.3.0' },
-            { moduleName: 'tummycrypt_tinyland_auth_pg', version: '0.2.4' },
-            { moduleName: 'tummycrypt_tinyland_auth_redis', version: '0.1.3' },
-            { moduleName: 'tummycrypt_tinyland_security', version: '0.3.2' },
-            { moduleName: 'tummycrypt_tinyland_rate_limit', version: '0.3.0' },
-        ],
-        targets: [
-            '@tummycrypt_tinyland_auth//:pkg',
-            '@tummycrypt_tinyland_auth_pg//:pkg',
-            '@tummycrypt_tinyland_auth_redis//:pkg',
-            '@tummycrypt_tinyland_security//:pkg',
-            '@tummycrypt_tinyland_rate_limit//:pkg',
-        ],
-        requiresPrivateArchiveAuth: true,
-        successLabel: 'Built Stage 1 consumer targets',
-    }),
     'scheduling-kit-only': schedulingKitScenario,
     'scheduling-bridge-only': schedulingBridgeScenario,
     'tempo-store-only': tempoStoreScenario,
 };
 
 const scenarioArgument = process.argv.find((argument) => argument.startsWith('--scenario='));
-const scenarioName = scenarioArgument?.slice('--scenario='.length) || 'stage1';
+const scenarioName = scenarioArgument?.slice('--scenario='.length);
 const scenarioFactory = scenarioFactories[scenarioName];
 if (!scenarioFactory) {
-    console.error(`Unknown consumer smoke scenario: ${scenarioName}`);
+    console.error(`Required isolated consumer scenario is missing or unknown: ${scenarioName ?? '<missing>'}`);
     process.exit(2);
 }
 const scenario = scenarioFactory();

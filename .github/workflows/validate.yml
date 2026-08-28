@@ -23,10 +23,11 @@ permissions:
 
 jobs:
   validate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: tinyland-nix
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -116,15 +117,5 @@ jobs:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
       - name: Build isolated scheduling-bridge consumer
         run: node scripts/smoke-stage1-consumer-targets.mjs --scenario=scheduling-bridge-only
-        env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Audit aggregate active-module graph (legacy compatibility)
-        continue-on-error: true
-        run: node scripts/smoke-active-registry.mjs
-        env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
-      - name: Audit Stage 1 aggregate consumer targets (legacy compatibility)
-        continue-on-error: true
-        run: node scripts/smoke-stage1-consumer-targets.mjs
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
