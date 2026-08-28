@@ -61,21 +61,25 @@ jobs:
           BAZEL_CACHE_REACHABLE: ${{ steps.flywheel-setup.outputs.bazel_cache_reachable }}
         run: |-
           set -euo pipefail
-          test "$BAZEL_CACHE_REACHABLE" = true
+          if [ "$BAZEL_CACHE_REACHABLE" != true ]; then
+            echo "::error::GF Bazel cache attachment is required"
+            exit 65
+          fi
           custody_file=/etc/tinyland/ci-bazelisk-bin
-          test -r "$custody_file"
-          bazelisk_bin="$(tr -d '\n' < "$custody_file")"
-          case "$bazelisk_bin" in
-            /nix/store/????????????????????????????????-bazelisk-1.25.0/bin/bazelisk) ;;
-            *) echo "::error::invalid GF Bazelisk custody path: $bazelisk_bin"; exit 65 ;;
-          esac
-          test -f "$bazelisk_bin"
-          test ! -L "$bazelisk_bin"
-          test -x "$bazelisk_bin"
-          test "$(stat -c '%u:%g' "$bazelisk_bin")" = "0:0"
-          test -z "$(find "$bazelisk_bin" -perm /022 -print -quit)"
-          node -e 'if (Number(process.versions.node.split(".")[0]) !== 24) process.exit(65)'
-          echo "TINYLAND_CI_BAZELISK_BIN=$bazelisk_bin" >> "$GITHUB_ENV"
+          if [ ! -r "$custody_file" ]; then
+            echo "::error::missing GF Bazelisk custody file: $custody_file"
+            exit 65
+          fi
+          export TINYLAND_CI_BAZELISK_BIN="$(tr -d '\n' < "$custody_file")"
+          node --input-type=module <<'NODE'
+          if (Number(process.versions.node.split('.')[0]) !== 24) {
+            throw new Error(`GF runner Node 24 required; found ${process.version}`);
+          }
+          const { resolveGfBazel } = await import('./scripts/gf-bazel-frontdoor.mjs');
+          const bazel = resolveGfBazel();
+          console.log(`GF Bazel front door verified at ${bazel.command}`);
+          NODE
+          echo "TINYLAND_CI_BAZELISK_BIN=$TINYLAND_CI_BAZELISK_BIN" >> "$GITHUB_ENV"
       - name: Verify private source token scope
         env:
           TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
