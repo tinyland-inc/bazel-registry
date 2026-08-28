@@ -29,19 +29,82 @@ jobs:
     runs-on: tinyland-nix
     steps:
       - uses: actions/checkout@v4
+      - name: Mint Tinyland registry source token
+        id: tinyland-registry-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
+        with:
+          app-id: ${{ secrets.TINYLAND_REGISTRY_APP_ID }}
+          private-key: ${{ secrets.TINYLAND_REGISTRY_APP_KEY }}
+          owner: tinyland-inc
+          repositories: |-
+            scheduling-bridge
+            tempo-store
+            tinyland-file-logger
+            tinyland-publishing-hooks
+            tinyland-scheduled-publishing
+            tinyland-schemas
+            tinyland-server-config
+            tinyland-server-utils
+            tinyland-tracing-middleware
+          permission-contents: read
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Verify private source token scope
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+        run: |-
+          node --input-type=module <<'NODE'
+          const token = process.env.TINYLAND_REGISTRY_GITHUB_TOKEN;
+          if (!token) throw new Error('registry source token is missing');
+
+          const api = await fetch('https://api.github.com/repos/tinyland-inc/scheduling-bridge', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json',
+            },
+          });
+          if (!api.ok) throw new Error(`registry source metadata read returned ${api.status}`);
+
+          const archive = await fetch(
+            'https://api.github.com/repos/tinyland-inc/scheduling-bridge/tarball/v0.7.1',
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github+json',
+              },
+              redirect: 'manual',
+            },
+          );
+          if (![301, 302, 303, 307, 308].includes(archive.status)) {
+            throw new Error(`API tarball returned ${archive.status}; expected an authenticated redirect`);
+          }
+          console.log('Private scheduling-bridge metadata and API tarball redirect are readable.');
+          NODE
       - uses: bazel-contrib/setup-bazel@8cb04a772ab4c1eb984e9c1b493a182e96c5e425
         with:
           bazelisk-cache: true
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
-      - run: npm run validate
-      - run: npm run smoke:resolve
+      - name: Validate static registry contracts
+        run: npm run validate
+      - name: Build isolated scheduling-kit consumer
+        run: npm run smoke:scheduling-kit-only
+      - name: Build isolated tempo-store consumer
+        run: npm run smoke:tempo-store-only
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
-      - run: npm run smoke:stage1-consumer
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+      - name: Build isolated scheduling-bridge consumer
+        run: npm run smoke:scheduling-bridge-only
         env:
-          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ secrets.TINYLAND_REGISTRY_GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ github.token }}
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+      - name: Audit aggregate active-module graph (legacy compatibility)
+        continue-on-error: true
+        run: npm run smoke:resolve
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
+      - name: Audit Stage 1 aggregate consumer targets (legacy compatibility)
+        continue-on-error: true
+        run: npm run smoke:stage1-consumer
+        env:
+          TINYLAND_REGISTRY_GITHUB_TOKEN: ${{ steps.tinyland-registry-token.outputs.token }}
