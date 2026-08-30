@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { validateAspectRulesTsVersions } from './validate-aspect-rules-ts-versions.mjs';
+
 const root = process.cwd();
 const registryPath = path.join(root, 'bazel_registry.json');
 
@@ -133,6 +135,15 @@ for (const sourceJsonPath of sourceJsonFiles) {
 	}
 }
 
+let aspectRulesTsValidation;
+if (status === 'active') {
+	try {
+		aspectRulesTsValidation = validateAspectRulesTsVersions({ modulesDir });
+	} catch (error) {
+		fail(error instanceof Error ? error.message : String(error));
+	}
+}
+
 if (process.exitCode) {
 	process.exit();
 }
@@ -140,3 +151,8 @@ if (process.exitCode) {
 console.log(
 	`Validated ${sourceJsonFiles.length} source entries for ${status} registry at ${moduleBasePath}`,
 );
+if (aspectRulesTsValidation?.requests.length) {
+	console.log(
+		`Validated ${aspectRulesTsValidation.requests.length} aspect_rules_ts deps tag identities across ${aspectRulesTsValidation.tagNames.length} repository names in greatest non-yanked module versions`,
+	);
+}
