@@ -1,0 +1,51 @@
+"""rules_tectonic: Bazel rules for compiling LaTeX to PDF with tectonic.
+
+Public surface:
+  - load("@rules_tectonic//tectonic:defs.bzl", "tectonic_pdf")
+  - tectonic_pdf(name, src, deps = [], data = [], ...)
+
+Toolchains for linux_amd64, linux_arm64, darwin_amd64, darwin_arm64 are
+registered automatically. Override the tectonic version via the
+`tectonic_toolchains.from_version(version = "...")` tag.
+"""
+
+module(
+    name = "rules_tectonic",
+    version = "0.2.2",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.2", dev_dependency = True)
+
+bazel_dep(name = "platforms", version = "1.0.0")
+
+bazel_dep(name = "rules_shell", version = "0.8.0", dev_dependency = True)
+bazel_dep(name = "stardoc", version = "0.8.1", dev_dependency = True)
+
+buildifier_prebuilt = use_extension("@buildifier_prebuilt//:defs.bzl", "buildifier_prebuilt_deps_extension", dev_dependency = True)
+buildifier_prebuilt.toolchains()
+use_repo(buildifier_prebuilt, "buildifier_prebuilt_toolchains")
+
+tectonic_toolchains = use_extension("//tectonic:extensions.bzl", "tectonic_toolchains_ext")
+tectonic_toolchains.from_version(version = "0.16.9")
+use_repo(
+    tectonic_toolchains,
+    "tectonic_darwin_amd64",
+    "tectonic_darwin_arm64",
+    "tectonic_linux_amd64",
+    "tectonic_linux_arm64",
+)
+
+register_toolchains(
+    "@buildifier_prebuilt_toolchains//:all",
+    dev_dependency = True,
+)
+
+register_toolchains(
+    "//tectonic:tectonic_linux_amd64_toolchain",
+    "//tectonic:tectonic_linux_arm64_toolchain",
+    "//tectonic:tectonic_darwin_amd64_toolchain",
+    "//tectonic:tectonic_darwin_arm64_toolchain",
+)
