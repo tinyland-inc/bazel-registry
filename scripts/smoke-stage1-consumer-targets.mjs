@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { resolveGfBazel } from './gf-bazel-frontdoor.mjs';
 
 const root = process.cwd();
 
@@ -91,36 +92,16 @@ function tempoStoreScenario() {
 }
 
 const scenarioFactories = {
-    stage1: () => ({
-        key: 'stage1',
-        workspaceName: 'tinyland_registry_stage1_consumer_smoke',
-        modules: [
-            { moduleName: 'tummycrypt_tinyland_auth', version: '0.3.0' },
-            { moduleName: 'tummycrypt_tinyland_auth_pg', version: '0.2.4' },
-            { moduleName: 'tummycrypt_tinyland_auth_redis', version: '0.1.3' },
-            { moduleName: 'tummycrypt_tinyland_security', version: '0.3.2' },
-            { moduleName: 'tummycrypt_tinyland_rate_limit', version: '0.3.0' },
-        ],
-        targets: [
-            '@tummycrypt_tinyland_auth//:pkg',
-            '@tummycrypt_tinyland_auth_pg//:pkg',
-            '@tummycrypt_tinyland_auth_redis//:pkg',
-            '@tummycrypt_tinyland_security//:pkg',
-            '@tummycrypt_tinyland_rate_limit//:pkg',
-        ],
-        requiresPrivateArchiveAuth: true,
-        successLabel: 'Built Stage 1 consumer targets',
-    }),
     'scheduling-kit-only': schedulingKitScenario,
     'scheduling-bridge-only': schedulingBridgeScenario,
     'tempo-store-only': tempoStoreScenario,
 };
 
 const scenarioArgument = process.argv.find((argument) => argument.startsWith('--scenario='));
-const scenarioName = scenarioArgument?.slice('--scenario='.length) || 'stage1';
+const scenarioName = scenarioArgument?.slice('--scenario='.length);
 const scenarioFactory = scenarioFactories[scenarioName];
 if (!scenarioFactory) {
-    console.error(`Unknown consumer smoke scenario: ${scenarioName}`);
+    console.error(`Required isolated consumer scenario is missing or unknown: ${scenarioName ?? '<missing>'}`);
     process.exit(2);
 }
 const scenario = scenarioFactory();
@@ -164,25 +145,12 @@ process.stdout.write(JSON.stringify({
 	];
 }
 
-function resolveBazelCommand() {
-	for (const command of ['bazelisk', 'bazel']) {
-		const probe = spawnSync(command, ['version'], {
-			cwd: root,
-			stdio: 'ignore',
-		});
-		if (!probe.error && probe.status === 0) {
-			return { command, prefixArgs: [] };
-		}
-	}
-
-	return { command: 'npx', prefixArgs: ['--yes', '@bazel/bazelisk'] };
-}
 
 const smokeDir = fs.mkdtempSync(path.join(os.tmpdir(), `${scenario.workspaceName}-`));
 let exitCode = 0;
 try {
 	const credentialHelperArgs = writeGitHubCredentialHelper(smokeDir);
-	const bazel = resolveBazelCommand();
+	const bazel = resolveGfBazel();
 	const moduleBazel = [
         `module(name = "${scenario.workspaceName}", version = "0.0.0")`,
         ...scenario.modules.map(
@@ -197,7 +165,6 @@ try {
         const graphResult = spawnSync(
             bazel.command,
             [
-                ...bazel.prefixArgs,
                 '--ignore_all_rc_files',
                 'mod',
                 'graph',
@@ -210,6 +177,7 @@ try {
                 '--lockfile_mode=off',
                 `--registry=file://${root}`,
                 '--registry=https://bcr.bazel.build',
+                ...bazel.remoteArgs,
             ],
             {
                 cwd: smokeDir,
@@ -248,7 +216,6 @@ try {
     const result = exitCode === 0 ? spawnSync(
         bazel.command,
         [
-            ...bazel.prefixArgs,
             '--ignore_all_rc_files',
             'build',
             ...scenario.targets,
@@ -257,6 +224,7 @@ try {
 			'--lockfile_mode=off',
 			`--registry=file://${root}`,
 			'--registry=https://bcr.bazel.build',
+			...bazel.remoteArgs,
 		],
 		{
 			cwd: smokeDir,
