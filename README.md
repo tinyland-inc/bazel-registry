@@ -67,8 +67,21 @@ commit — see `docs/bazel-adoption-v0.md` §3 for the full convention.
 
 - `npm run validate` (`scripts/validate-registry.mjs`) — pure static checks:
   every `source.json` has SRI integrity, no `tinyland.dev` tarball
-  references, `metadata.json` and `MODULE.bazel` agree on name/version, and
+  references, its `url` resolves to an allowed GitHub source host (a
+  `github.com/<owner>/<repo>/archive/refs/tags/<tag>.tar.gz` release archive,
+  or an `api.github.com/repos/<owner>/<repo>/tarball/<ref>` authenticated
+  tarball for private repos -- package-registry hosts such as
+  `registry.npmjs.org` and `npm.pkg.github.com` are explicitly refused),
+  `metadata.json` and `MODULE.bazel` agree on name/version, and
   `.bazelversion` matches the recorded estate pin. No network.
+- `npm run test:validate-source-hosts`
+  (`scripts/test-validate-registry-source-hosts.mjs`): fixture-driven
+  negative control for the source-host allowlist above. Builds throwaway
+  one-module registry fixtures in a temp dir and runs `validate-registry.mjs`
+  against each, proving both that allowed URL shapes still pass and that
+  `registry.npmjs.org`, `npm.pkg.github.com`, and any other unlisted host are
+  rejected. `npm run validate` alone can't prove the refusal path: this
+  repo's real `modules/` tree has no disallowed-host entries to exercise it.
 - `scripts/check-immutable-versions.sh` — rejects edits to already-shipped
   module version directories (immutability gate).
 - `npm run smoke:resolve` / `npm run smoke:stage1-consumer` — network and

@@ -31,6 +31,62 @@ function fail(message) {
 	process.exitCode = 1;
 }
 
+// Every module source must resolve to a GitHub release archive, never a
+// package-registry host. This is a deliberate refusal, not an oversight: an
+// npm-hosted tarball is mutable at the registry's discretion
+// (unpublish/republish can change bytes behind the same URL/version), and a
+// GitHub tag archive is the only distribution path this registry's publish
+// convention has ever used (see README "Validation" and the immutability
+// gate). Only two URL shapes are allowed, both already in production use
+// across modules/:
+//   1. https://github.com/<owner>/<repo>/archive/refs/tags/<tag>.tar.gz
+//      -- public/private repos published as GitHub release tag archives.
+//   2. https://api.github.com/repos/<owner>/<repo>/tarball/<ref>
+//      -- private repos pulled through GitHub's authenticated API tarball
+//         endpoint (see .github/workflows/validate.yml's token-scope check).
+// Scope note: this rule constrains the HOST and the URL SHAPE only. It
+// deliberately does not pin <owner>, so any GitHub account's tag archive
+// satisfies it -- the bytes behind an accepted URL are pinned by the sha256
+// SRI `integrity` check below, not by this rule. Add an owner allowlist here
+// if provenance, rather than host, ever needs to be enforced too.
+const ALLOWED_SOURCE_URL_PATTERNS = [
+	/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/archive\/refs\/tags\/[^/]+\.tar\.gz$/,
+	/^https:\/\/api\.github\.com\/repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/tarball\/[A-Za-z0-9._-]+$/,
+];
+
+// Named explicitly so a refusal reads as "this host is banned", not just
+// "this host isn't on the allowlist" -- npm-registry hosts are the concrete
+// threat this rule exists to catch.
+const EXPLICITLY_REFUSED_SOURCE_HOSTS = new Set(['registry.npmjs.org', 'npm.pkg.github.com']);
+
+function validateSourceUrlHost(url, relativePath) {
+	if (!url) {
+		fail(`${relativePath} is missing url`);
+		return;
+	}
+
+	let hostname;
+	try {
+		hostname = new URL(url).hostname;
+	} catch {
+		fail(`${relativePath} url is not a valid absolute URL: ${url}`);
+		return;
+	}
+
+	if (EXPLICITLY_REFUSED_SOURCE_HOSTS.has(hostname)) {
+		fail(
+			`${relativePath} url uses a refused package-registry host (${hostname}): ${url}. Module sources must be Tinyland-controlled GitHub archives, not npm registries.`,
+		);
+		return;
+	}
+
+	if (!ALLOWED_SOURCE_URL_PATTERNS.some((pattern) => pattern.test(url))) {
+		fail(
+			`${relativePath} url does not match an allowed source host/shape: ${url}. Expected a github.com release-tag archive or an api.github.com repos tarball URL.`,
+		);
+	}
+}
+
 const registry = readJson(registryPath);
 const status = registry.status ?? 'active';
 const moduleBasePath = registry.module_base_path ?? 'modules';
@@ -110,6 +166,7 @@ for (const sourceJsonPath of sourceJsonFiles) {
 	if (source.strip_prefix?.includes('tinyland.dev-')) {
 		fail(`${relativePath} strip_prefix still references tinyland.dev`);
 	}
+	validateSourceUrlHost(source.url, relativePath);
 	if (!metadata) {
 		fail(`${relativePath} is missing sibling metadata.json`);
 		continue;

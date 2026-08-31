@@ -88,6 +88,8 @@ jobs:
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Validate static registry contracts
         run: npm run validate
+      - name: Prove source-host allowlist rejects non-GitHub sources
+        run: npm run test:validate-source-hosts
       - name: Build isolated scheduling-kit consumer
         run: npm run smoke:scheduling-kit-only
       - name: Build isolated tempo-store consumer
