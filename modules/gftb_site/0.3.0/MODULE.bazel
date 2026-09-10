@@ -1,0 +1,76 @@
+"""Bazel module graph for the Great Falls Tool Bus static microsite."""
+
+module(
+    name = "gftb_site",
+    version = "0.3.0",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+bazel_dep(name = "rules_multitool", version = "1.11.1")
+# rules_pkg pulls the hermetic rules_python interpreter; the publisher's
+# isolated Linux environment runs as root, and only the root module may lift
+# the rules_python root-user refusal (see rules_python#713).
+bazel_dep(name = "rules_python", version = "1.0.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.3")
+bazel_dep(name = "aspect_rules_js", version = "2.9.1")
+bazel_dep(name = "aspect_rules_ts", version = "3.8.4")
+
+# First-party Vite plugin, graph-linked in BUILD.bazel rather than through npm.
+bazel_dep(name = "tummycrypt_vite_plugin_a11y", version = "0.2.4")
+
+# First-party brand-blob background (TinyVectors), graph-linked in BUILD.bazel
+# rather than through npm. 0.3.7 is the idle-drift floor: the first release
+# whose physics loop cruises the blobs on every idle desktop by default
+# (src/lib/brand-vectors-motion-contract.test.ts pins it).
+bazel_dep(name = "tummycrypt_tinyvectors", version = "0.3.7")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    python_version = "3.11",
+    is_default = True,
+    ignore_root_user_error = True,
+)
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "22.13.1")
+
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
+pnpm.pnpm(name = "pnpm", pnpm_version = "10.13.1")
+use_repo(pnpm, "pnpm")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    npmrc = "//:.npmrc",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    data = ["//:package.json", "//:pnpm-workspace.yaml"],
+    # Browser packages must never fetch browser binaries at npm lifecycle time
+    # (GloriousFlywheel browser-rbe-candidate-guide, lifecycle download
+    # policy): //:browser_smoke_test launches the pre-provisioned worker
+    # Chromium named by GF_RBE_CHROMIUM_EXECUTABLE instead.
+    lifecycle_hooks_envs = {
+        "playwright": {"PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"},
+    },
+)
+use_repo(npm, "npm")
+
+# Hermetic source validators for the v4 validate ActionPlan (TIN-4251), ported
+# from the house Bazel pattern: rules_multitool pins Gitleaks and actionlint per
+# platform in multitool.lock.json, and gitleaks_test.bzl binds each binary to a
+# declared source capsule inside its cacheable test action.
+multitool = use_extension("@rules_multitool//multitool:extension.bzl", "multitool")
+multitool.hub(lockfile = "//:multitool.lock.json")
+use_repo(multitool, "multitool")
+
+register_toolchains("@multitool//toolchains:all")
+
+rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts_ext.deps(
+    ts_version = "6.0.3",
+    ts_integrity = "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
+)
+use_repo(rules_ts_ext, "npm_typescript")
