@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/Great-Falls-Tool-Bus/gftb-site",
+  "maintainers": [
+    {
+      "name": "tinyland",
+      "email": "tinyland@tinyland.dev"
+    }
+  ],
+  "versions": [
+    "0.3.0"
+  ],
+  "yanked_versions": {}
+}
